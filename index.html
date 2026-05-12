@@ -2525,19 +2525,19 @@ window.addEventListener('load', applyHash);
     else if (u > 3.0)  { fillC = '#ffd7ad'; strokeC = '#D95F02'; }   // slip (tanh saturated)
     else               { fillC = '#bcd2e8'; strokeC = '#12355B'; }   // transition
     gBlock.appendChild(el('rect', {
-      x: M.wx(x - w/2), y: M.wy(0.55),
+      x: M.wx(x - w/2), y: M.wy(0.25),
       width: M.wx(x + w/2) - M.wx(x - w/2),
       height: M.wy(0) - M.wy(0.55),
       fill: fillC, stroke: strokeC, 'stroke-width': '2',
       style: 'cursor: grab;'
     }));
     gBlock.appendChild(el('text', {
-      x: M.wx(x), y: M.wy(0.30) + 4,
+      x: M.wx(x), y: M.wy(-0.05) + 4,
       'font-size': '13', fill: strokeC, 'text-anchor': 'middle',
       'font-style': 'italic'
     })).textContent = 'm';
     gBlock.appendChild(el('text', {
-      x: M.wx(x), y: M.wy(0.85),
+      x: M.wx(x), y: M.wy(0.55),
       'font-size': '11', fill: '#444', 'text-anchor': 'middle',
       'font-family': 'monospace'
     })).textContent = `x = ${x.toFixed(3)}`;
