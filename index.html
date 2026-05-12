@@ -218,16 +218,18 @@
 
 <h1>Nonsmooth contact mechanics — interactive widgets</h1>
 <div class="deck-subtitle">
-  Four demonstrations: two geometric (normal cones, projections) and two physical (bouncing ball, spring-slider).
-  Pick the shape <em>K</em> on each geometry tab; press Play on each physics tab.
+  Six demonstrations: two geometric (normal cones, projections), three physical (bouncing ball, smooth
+  friction, spring-slider), and one solver (Coulomb 2D iteration). Pick the shape <em>K</em> on each
+  geometry tab; press Play on each physics tab.
 </div>
 
 <div class="tabbar" id="tabbar">
   <button class="tab active" data-tab="ncone">1. Normal cone</button>
   <button class="tab" data-tab="proj">2. Projection</button>
   <button class="tab" data-tab="ball">3. Bouncing ball</button>
-  <button class="tab" data-tab="slider">4. Spring-slider (1D friction)</button>
-  <button class="tab" data-tab="iterate">5. Coulomb 2D iteration</button>
+  <button class="tab" data-tab="smooth">4. Smooth friction (regularized)</button>
+  <button class="tab" data-tab="slider">5. Spring-slider: smooth vs nonsmooth</button>
+  <button class="tab" data-tab="iterate">6. Coulomb 2D iteration</button>
 </div>
 
 <!-- ====================================================================
@@ -511,7 +513,97 @@
 </div>
 
 <!-- ====================================================================
-     TAB 4: SPRING-SLIDER
+     TAB 4: SMOOTH FRICTION (regularized only)
+     ==================================================================== -->
+<div class="panel" id="panel-smooth">
+  <div class="panel-intro">
+    <strong>What this shows.</strong> Classical regularized friction:
+    <em>r<sub>ε</sub></em>(<em>v</em>) = −tanh(<em>v</em>/ε).
+    Smooth, single-valued, drops into any standard ODE solver. Spring-slider geometry,
+    fully implicit backward Euler via Newton iteration. <strong>This is what people usually do</strong> —
+    look at it on its own here; the next tab compares it side-by-side with the true nonsmooth law.
+  </div>
+  <div class="controls">
+    <button class="cbtn" id="smooth-play">▶ Play</button>
+    <button class="cbtn" id="smooth-step">Step</button>
+    <button class="cbtn warn" id="smooth-reset">Reset</button>
+    <label class="slider">applied force <em>f</em>:
+      <input type="range" id="smooth-force" min="-1.6" max="1.6" step="0.02" value="0">
+      <span id="smooth-force-val">+0.00</span>
+    </label>
+    <label class="slider">ε:
+      <input type="range" id="smooth-eps" min="0.01" max="0.5" step="0.01" value="0.10">
+      <span id="smooth-eps-val">0.10</span>
+    </label>
+  </div>
+  <div class="layout">
+    <div class="canvas-wrap">
+      <svg id="canvas-smooth" class="canvas" viewBox="0 0 700 280" xmlns="http://www.w3.org/2000/svg"></svg>
+    </div>
+    <div class="readout" id="readout-smooth"></div>
+  </div>
+  <div class="history-wrap" style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px;">
+    <svg id="history-smooth-r" viewBox="0 0 360 220" xmlns="http://www.w3.org/2000/svg"></svg>
+    <svg id="history-smooth-v" viewBox="0 0 360 220" xmlns="http://www.w3.org/2000/svg"></svg>
+    <svg id="history-smooth-x" viewBox="0 0 360 220" xmlns="http://www.w3.org/2000/svg"></svg>
+  </div>
+  <details class="read-more">
+    <summary>Read more — classical regularization, the standard approach</summary>
+    <div class="rm-body">
+
+      <h4>What you're seeing</h4>
+      <p>A unit mass on a spring, dragged by an applied force <em>f</em>, with smooth friction
+        <em>r<sub>ε</sub></em>(<em>v</em>) = −tanh(<em>v</em>/ε) opposing motion. No projection,
+        no inclusion: friction is a single-valued function of velocity, end of story. This is
+        the friction model in most introductory ODE textbooks and in many engineering codes.</p>
+
+      <h4>How it's solved</h4>
+      <p>Fully implicit backward Euler. At each step, solve the scalar nonlinear equation</p>
+      <div class="eq-block">
+        (<em>m</em> + <em>h</em><sup>2</sup><em>k</em>) <em>v</em><sup>n+1</sup> +
+        <em>h</em> tanh(<em>v</em><sup>n+1</sup>/ε) = <em>v</em><sup>n</sup> +
+        <em>h</em>(<em>f</em> − <em>k x</em><sup>n</sup>)
+      </div>
+      <p>via Newton iteration. The Jacobian
+        <em>F</em>′(<em>v</em>) = (<em>m</em> + <em>h</em><sup>2</sup><em>k</em>) +
+        (<em>h</em>/ε)&thinsp;sech<sup>2</sup>(<em>v</em>/ε) is bounded below by
+        <em>m</em> + <em>h</em><sup>2</sup><em>k</em> &gt; 0, so Newton is well-posed for every
+        ε &gt; 0. Small ε makes the linearisation stiff near <em>v</em> = 0 but doesn't break the
+        solver — typical convergence is 4–8 iterations.</p>
+
+      <h4>What to try</h4>
+      <ol>
+        <li>Drag the block to <em>x</em> = 0.5, set <em>f</em> = 0, press Play. Watch the
+          position trace. The block doesn't stay put — it creeps slowly back toward
+          <em>x</em> = 0. Any nonzero <em>kx</em> produces a nonzero <em>v</em>, and smooth
+          friction can't make <em>v</em> exactly zero.</li>
+        <li>Drop ε from 0.5 to 0.02 and try again. Creep slows but doesn't vanish.
+          As ε → 0 the smooth model formally converges to Coulomb in dynamics, but the
+          stick regime is wrong at every finite ε — the block is never <em>exactly</em> at rest.</li>
+        <li>Sweep <em>f</em> from −1.5 to 1.5 and back at ε = 0.1. The friction trace is
+          a smooth sigmoid: no hysteresis loop, no sharp stick/slip threshold. The block
+          responds smoothly, like a heavily damped oscillator with a velocity-dependent
+          drag.</li>
+        <li>Now jump to the <strong>next tab</strong> (Spring-slider: smooth vs nonsmooth)
+          and toggle the regularize comparison on. Same physics, same parameters, but
+          with the nonsmooth true-Coulomb law overlaid. The contrast at stick is the
+          whole story.</li>
+      </ol>
+
+      <p style="font-size: 0.88em; color: #666; margin-top: 0.8em;">
+        Regularization is everywhere in engineering practice because it's easy. It works
+        for problems where friction is just a damping mechanism — machinery, controls,
+        soft robotics. It's wrong for problems where exact stick and hysteresis matter —
+        geomechanics fault models, granular packing, structural seismic. The widget shows
+        the difference; the choice is yours.
+      </p>
+    </div>
+  </details>
+
+</div>
+
+<!-- ====================================================================
+     TAB 5: SPRING-SLIDER (smooth vs nonsmooth comparison)
      ==================================================================== -->
 <div class="panel" id="panel-slider">
   <div class="panel-intro">
@@ -629,7 +721,7 @@
 </div>
 
 <!-- ====================================================================
-     TAB 5: COULOMB 2D ITERATION
+     TAB 6: COULOMB 2D ITERATION
      ==================================================================== -->
 <div class="panel" id="panel-iterate">
   <div class="panel-intro">
@@ -1327,6 +1419,7 @@ const panels = {
   ncone: document.getElementById('panel-ncone'),
   proj: document.getElementById('panel-proj'),
   ball: document.getElementById('panel-ball'),
+  smooth: document.getElementById('panel-smooth'),
   slider: document.getElementById('panel-slider'),
   iterate: document.getElementById('panel-iterate'),
 };
@@ -2318,7 +2411,376 @@ window.addEventListener('load', applyHash);
 })();
 
 // =========================================================================
-// TAB 4: Spring-slider (1D friction physics) — IMPROVED
+// TAB 4: Smooth friction (regularized only) — pedagogical "what people usually do"
+// Single-method demo of r_ε(v) = -tanh(v/ε). Implicit BE via Newton iteration.
+// Stripped-down sibling of initSlider — same physics, no Moreau, no comparison.
+// =========================================================================
+(function initSmooth() {
+  const svg = document.getElementById('canvas-smooth');
+  ensureMarkers(svg);
+  const M = makeMapping(700, 280, -3.0, 3.0, -1.4, 1.4);
+
+  const m_block = 1.0;
+  const k_spring = 1.0;
+  const h_step = 0.05;
+  let f = 0.0;
+  let eps = 0.10;
+  let x = 0.0, v = 0.0, r = 0.0;
+  let tStep = 0;
+
+  const historyR = makeHistoryChart(document.getElementById('history-smooth-r'), {
+    W: 360, H: 220, window: 600,
+    yLabel: 'r, load',
+    traces: [
+      { key: 'load', label: 'load <em>f − kx</em>', color: '#D95F02' },
+      { key: 'r',    label: '<em>r</em><sub>ε</sub> = −tanh(<em>v</em>/ε)', color: '#B2182B' },
+    ]
+  });
+  const historyV = makeHistoryChart(document.getElementById('history-smooth-v'), {
+    W: 360, H: 220, window: 600,
+    yLabel: 'v',
+    traces: [
+      { key: 'v', label: '<em>v</em>', color: '#1B7837' },
+    ]
+  });
+  const historyX = makeHistoryChart(document.getElementById('history-smooth-x'), {
+    W: 360, H: 220, window: 600,
+    yLabel: 'x',
+    traces: [
+      { key: 'x', label: '<em>x</em>', color: '#12355B' },
+    ]
+  });
+
+  const gFloor  = el('g'); svg.appendChild(gFloor);
+  const gSpring = el('g'); svg.appendChild(gSpring);
+  const gBlock  = el('g'); svg.appendChild(gBlock);
+  const gArrows = el('g'); svg.appendChild(gArrows);
+  const gMeter  = el('g'); svg.appendChild(gMeter);
+
+  function drawFloor() {
+    clear(gFloor);
+    gFloor.appendChild(el('line', {
+      x1: M.wx(M.X_MIN), y1: M.wy(-0.30),
+      x2: M.wx(M.X_MAX), y2: M.wy(-0.30),
+      stroke: '#444', 'stroke-width': '2'
+    }));
+    for (let xx = M.X_MIN; xx < M.X_MAX; xx += 0.25) {
+      gFloor.appendChild(el('line', {
+        x1: M.wx(xx), y1: M.wy(-0.30),
+        x2: M.wx(xx + 0.18), y2: M.wy(-0.55),
+        stroke: '#888', 'stroke-width': '1'
+      }));
+    }
+    gFloor.appendChild(el('rect', {
+      x: M.wx(M.X_MIN + 0.08), y: M.wy(0.95),
+      width: M.wx(M.X_MIN + 0.20) - M.wx(M.X_MIN + 0.08),
+      height: M.wy(-0.30) - M.wy(0.95),
+      fill: '#888'
+    }));
+    gFloor.appendChild(el('line', {
+      x1: M.wx(0), y1: M.wy(-0.30),
+      x2: M.wx(0), y2: M.wy(-0.65),
+      stroke: '#1B7837', 'stroke-width': '1.2', 'stroke-dasharray': '3,2'
+    }));
+    gFloor.appendChild(el('text', {
+      x: M.wx(0), y: M.wy(-0.85),
+      'font-size': '11', fill: '#1B7837', 'text-anchor': 'middle',
+      'font-style': 'italic'
+    })).textContent = 'x = 0';
+  }
+
+  function drawSpring() {
+    clear(gSpring);
+    const x0 = M.X_MIN + 0.20;
+    const x1 = x - 0.30;
+    if (x1 <= x0) return;
+    const N = 14, yMid = 0.30, amp = 0.13;
+    const points = [`${M.wx(x0)},${M.wy(yMid)}`];
+    for (let i = 1; i < N; i++) {
+      const t = i / N;
+      const px = x0 + t * (x1 - x0);
+      const py = yMid + amp * (i % 2 === 0 ? -1 : 1);
+      points.push(`${M.wx(px)},${M.wy(py)}`);
+    }
+    points.push(`${M.wx(x1)},${M.wy(yMid)}`);
+    gSpring.appendChild(el('polyline', {
+      points: points.join(' '),
+      fill: 'none', stroke: '#12355B', 'stroke-width': '1.6'
+    }));
+    gSpring.appendChild(el('text', {
+      x: M.wx((x0 + x1)/2), y: M.wy(yMid + 0.40),
+      'font-size': '11', fill: '#12355B', 'font-style': 'italic',
+      'text-anchor': 'middle'
+    })).textContent = `k = ${k_spring}`;
+  }
+
+  function drawBlock() {
+    clear(gBlock);
+    const w = 0.55;
+    // Color reflects the smoothed regime: |v|/eps small → near-stick (looks pinned, isn't).
+    // Use orange for near-stick instead of green, because smooth friction never truly sticks.
+    const u = Math.abs(v) / eps;
+    let fillC, strokeC;
+    if (u < 0.5)       { fillC = '#ffe1c4'; strokeC = '#D95F02'; }   // near-stick
+    else if (u > 3.0)  { fillC = '#ffd7ad'; strokeC = '#D95F02'; }   // slip (tanh saturated)
+    else               { fillC = '#bcd2e8'; strokeC = '#12355B'; }   // transition
+    gBlock.appendChild(el('rect', {
+      x: M.wx(x - w/2), y: M.wy(0.55),
+      width: M.wx(x + w/2) - M.wx(x - w/2),
+      height: M.wy(0) - M.wy(0.55),
+      fill: fillC, stroke: strokeC, 'stroke-width': '2',
+      style: 'cursor: grab;'
+    }));
+    gBlock.appendChild(el('text', {
+      x: M.wx(x), y: M.wy(0.30) + 4,
+      'font-size': '13', fill: strokeC, 'text-anchor': 'middle',
+      'font-style': 'italic'
+    })).textContent = 'm';
+    gBlock.appendChild(el('text', {
+      x: M.wx(x), y: M.wy(0.85),
+      'font-size': '11', fill: '#444', 'text-anchor': 'middle',
+      'font-family': 'monospace'
+    })).textContent = `x = ${x.toFixed(3)}`;
+  }
+
+  function drawArrows() {
+    clear(gArrows);
+    if (Math.abs(f) > 0.02) {
+      const dir = f > 0 ? 1 : -1;
+      const len = clamp(Math.abs(f) * 0.6, 0.15, 1.2);
+      gArrows.appendChild(el('line', {
+        x1: M.wx(x + dir*0.30), y1: M.wy(0.30),
+        x2: M.wx(x + dir*(0.30 + len)), y2: M.wy(0.30),
+        stroke: '#D95F02', 'stroke-width': '2.5',
+        'marker-end': 'url(#arrow-orange)'
+      }));
+      gArrows.appendChild(el('text', {
+        x: M.wx(x + dir*(0.30 + len/2)),
+        y: M.wy(0.30) - 6,
+        'font-size': '12', fill: '#D95F02',
+        'font-style': 'italic', 'text-anchor': 'middle'
+      })).textContent = `f = ${f >= 0 ? '+' : ''}${f.toFixed(2)}`;
+    }
+  }
+
+  // Friction meter: r_ε ∈ (-1, 1) — tanh asymptotes to ±1 but never reaches.
+  function drawMeter() {
+    clear(gMeter);
+    const yBar = -1.05;
+    const xLeft = -1.5, xRight = 1.5;
+    const needleX = clamp(r, -1.5, 1.5);
+    gMeter.appendChild(el('rect', {
+      x: M.wx(xLeft), y: M.wy(yBar) - 8,
+      width: M.wx(xRight) - M.wx(xLeft), height: 16,
+      fill: '#fff', stroke: '#aaa', 'stroke-width': '1'
+    }));
+    for (const tv of [-1, 0, 1]) {
+      gMeter.appendChild(el('line', {
+        x1: M.wx(tv), y1: M.wy(yBar) - 12,
+        x2: M.wx(tv), y2: M.wy(yBar) + 12,
+        stroke: '#444', 'stroke-width': '1.2'
+      }));
+      gMeter.appendChild(el('text', {
+        x: M.wx(tv), y: M.wy(yBar) + 25,
+        'font-size': '11', fill: '#444', 'text-anchor': 'middle',
+        'font-family': 'monospace'
+      })).textContent = tv.toString();
+    }
+    gMeter.appendChild(el('rect', {
+      x: M.wx(needleX) - 2, y: M.wy(yBar) - 12,
+      width: 4, height: 24,
+      fill: '#B2182B', stroke: 'white', 'stroke-width': '0.5'
+    }));
+    gMeter.appendChild(el('text', {
+      x: M.wx(-1.95), y: M.wy(yBar) + 5,
+      'font-size': '12', fill: '#444', 'font-style': 'italic',
+      'text-anchor': 'end'
+    })).textContent = 'r_ε = −tanh(v/ε):';
+    gMeter.appendChild(el('text', {
+      x: M.wx(1.95), y: M.wy(yBar) + 5,
+      'font-size': '12', fill: '#B2182B',
+      'font-family': 'monospace', 'font-weight': 'bold'
+    })).textContent = `${r >= 0 ? '+' : ''}${r.toFixed(3)}`;
+  }
+
+  // Newton iteration on F(v) = (m + h^2 k) v + h tanh(v/ε) - h f + h k x_old = 0.
+  // F'(v) = (m + h^2 k) + (h/ε) sech^2(v/ε) ≥ m + h^2 k > 0, so well-posed for all ε > 0.
+  function newton(xOld, vOld, fApp, e) {
+    const A = m_block + h_step * h_step * k_spring;
+    const c = vOld + h_step * fApp - h_step * k_spring * xOld;
+    let vk = vOld;
+    for (let i = 0; i < 30; i++) {
+      const u = vk / e;
+      let tanhU, sech2U;
+      if (Math.abs(u) > 30) {
+        tanhU = u > 0 ? 1 : -1;
+        sech2U = 0;
+      } else {
+        tanhU = Math.tanh(u);
+        const c2 = Math.cosh(u);
+        sech2U = 1 / (c2 * c2);
+      }
+      const F = A * vk + h_step * tanhU - c;
+      const Fp = A + (h_step / e) * sech2U;
+      const dv = -F / Fp;
+      vk += dv;
+      if (Math.abs(dv) < 1e-10) break;
+    }
+    return vk;
+  }
+
+  function step() {
+    const vNew = newton(x, v, f, eps);
+    const xNew = x + h_step * vNew;
+    const rNew = -Math.tanh(vNew / eps);
+    x = xNew; v = vNew; r = rNew;
+    tStep++;
+    const t = tStep * h_step;
+    const load = f - k_spring * x;
+    historyR.push({ t, values: { load, r } });
+    historyV.push({ t, values: { v } });
+    historyX.push({ t, values: { x } });
+  }
+
+  function reset() {
+    x = 0.0; v = 0.0; r = 0.0; tStep = 0;
+    historyR.clear(); historyV.clear(); historyX.clear();
+    const load0 = f - k_spring * x;
+    historyR.push({ t: 0, values: { load: load0, r } });
+    historyV.push({ t: 0, values: { v } });
+    historyX.push({ t: 0, values: { x } });
+    render();
+  }
+
+  let playing = false;
+  let lastT = 0;
+  const STEP_INTERVAL_MS = 50;
+  function loop(now) {
+    if (!playing) return;
+    const dt = now - lastT;
+    if (dt >= STEP_INTERVAL_MS) {
+      const stepsToTake = Math.min(5, Math.floor(dt / STEP_INTERVAL_MS));
+      for (let i = 0; i < stepsToTake; i++) step();
+      lastT = now;
+      render();
+    }
+    requestAnimationFrame(loop);
+  }
+
+  const readoutEl = document.getElementById('readout-smooth');
+  const rowEls = buildReadout(readoutEl, 'Live readout', [
+    { id: 'sm-stepnum', label: 'step <em>n</em>' },
+    { id: 'sm-x',       label: '<em>x</em>' },
+    { id: 'sm-v',       label: '<em>v</em>' },
+    { id: 'sm-r',       label: '<em>r</em><sub>ε</sub>' },
+    { id: 'sm-eps',     label: 'ε' },
+    { id: 'sm-f',       label: 'force <em>f</em>' },
+    { id: 'sm-creep',   label: 'creeping at "stick"?' },
+  ]);
+  const legend = document.createElement('div');
+  legend.className = 'legend';
+  legend.innerHTML = `
+    <div><span class="swatch" style="background:#ffe1c4;"></span>near-stick (block looks pinned, but <em>v</em> ≠ 0)</div>
+    <div><span class="swatch" style="background:#ffd7ad;"></span>slip (tanh saturated, |<em>r</em><sub>ε</sub>| → 1)</div>
+    <div><span class="swatch" style="background:#D95F02;"></span>applied force <em>f</em></div>
+    <div class="hint" style="margin-top:0.5em;">
+      <strong>Drag the block</strong> to <em>x</em> = 0.5, set <em>f</em> = 0, press Play.
+      Watch the position trace: the block creeps back toward <em>x</em> = 0. Even tiny
+      <em>kx</em> produces tiny <em>v</em>, and smooth friction can never reach exact stick.
+    </div>
+    <div class="hint" style="margin-top:0.4em;">
+      Try ε = 0.5 (visibly soft transitions) vs ε = 0.02 (sharp, near-Coulomb in dynamics
+      but still wrong at stick). Implicit BE handles any ε &gt; 0 without instability.
+    </div>
+    <div class="hint" style="margin-top:0.4em;">
+      Then jump to <strong>Tab 5</strong> (spring-slider) for the side-by-side with the true
+      nonsmooth law.
+    </div>
+  `;
+  readoutEl.appendChild(legend);
+
+  function render() {
+    drawFloor();
+    drawSpring();
+    drawBlock();
+    drawArrows();
+    drawMeter();
+    setVal(rowEls['sm-stepnum'], tStep);
+    setVal(rowEls['sm-x'], x.toFixed(4));
+    setVal(rowEls['sm-v'], v.toFixed(4));
+    setVal(rowEls['sm-r'], r.toFixed(3));
+    setVal(rowEls['sm-eps'], eps.toFixed(2));
+    setVal(rowEls['sm-f'], f.toFixed(3));
+    const creepy = Math.abs(v) > 1e-7 && Math.abs(v) < 1e-2 && Math.abs(f) < 0.1;
+    setVal(rowEls['sm-creep'],
+      creepy ? `yes — v = ${v.toExponential(2)}` : (Math.abs(v) < 1e-12 ? 'no — exact zero' : 'in motion'),
+      creepy ? 'outside' : 'in-cone');
+    historyR.render();
+    historyV.render();
+    historyX.render();
+  }
+
+  const btnPlay = document.getElementById('smooth-play');
+  btnPlay.addEventListener('click', () => {
+    playing = !playing;
+    btnPlay.textContent = playing ? '⏸ Pause' : '▶ Play';
+    if (playing) {
+      lastT = performance.now();
+      requestAnimationFrame(loop);
+    }
+  });
+  document.getElementById('smooth-step').addEventListener('click', () => {
+    if (!playing) { step(); render(); }
+  });
+  document.getElementById('smooth-reset').addEventListener('click', () => {
+    playing = false;
+    btnPlay.textContent = '▶ Play';
+    reset();
+  });
+  const fSlider = document.getElementById('smooth-force');
+  const fVal = document.getElementById('smooth-force-val');
+  fSlider.addEventListener('input', () => {
+    f = parseFloat(fSlider.value);
+    fVal.textContent = (f >= 0 ? '+' : '') + f.toFixed(2);
+    if (!playing) render();
+  });
+  const epsSlider = document.getElementById('smooth-eps');
+  const epsVal = document.getElementById('smooth-eps-val');
+  epsSlider.addEventListener('input', () => {
+    eps = parseFloat(epsSlider.value);
+    epsVal.textContent = eps.toFixed(2);
+    r = -Math.tanh(v / eps);
+    if (!playing) render();
+  });
+
+  makeDragSystem(svg, () => M, () => [
+    { key: 'block',
+      getPos: () => ({ x, y: 0.28 }),
+      setPos: (p) => {
+        if (playing) { playing = false; btnPlay.textContent = '▶ Play'; }
+        x = clamp(p.x, M.X_MIN + 0.5, M.X_MAX - 0.3);
+        v = 0;
+        r = 0;  // -tanh(0/eps) = 0
+        const t = tStep * h_step;
+        const load = f - k_spring * x;
+        historyR.push({ t, values: { load, r } });
+        historyV.push({ t, values: { v } });
+        historyX.push({ t, values: { x } });
+      },
+      hitRadius: 0.45
+    }
+  ], render);
+
+  tabModules.smooth = {
+    render,
+    onActivate() {},
+    onDeactivate() { playing = false; btnPlay.textContent = '▶ Play'; }
+  };
+  reset();
+})();
+
+// =========================================================================
+// TAB 5: Spring-slider (smooth vs nonsmooth comparison) — IMPROVED
 // k = 1.0, slower stepping, regime indicator, on-canvas friction gauge.
 // =========================================================================
 (function initSlider() {
@@ -2817,7 +3279,7 @@ window.addEventListener('load', applyHash);
 })();
 
 // =========================================================================
-// TAB 5: Coulomb 2D iteration — split-panel (dual + primal)
+// TAB 6: Coulomb 2D iteration — split-panel (dual + primal)
 //
 // Left panel: dual space (velocities). Shows K_mu^* (slope 1/mu, opens upward),
 //   v^free (gray dashed arrow, draggable from origin), v_tilde (orange arrow at
