@@ -2494,7 +2494,7 @@ window.addEventListener('load', applyHash);
     const x0 = M.X_MIN + 0.20;
     const x1 = x - 0.30;
     if (x1 <= x0) return;
-    const N = 14, yMid = 0.30, amp = 0.13;
+    const N = 14, yMid = 0.05, amp = 0.13;
     const points = [`${M.wx(x0)},${M.wy(yMid)}`];
     for (let i = 1; i < N; i++) {
       const t = i / N;
