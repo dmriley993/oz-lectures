@@ -7,7 +7,7 @@ David Michael Riley (ENSTA Paris / Institut Polytechnique de Paris).
 oz-lectures/
 ├── index.html                                                ← interactive widget
 ├── nonsmooth-contact/
-│   └── nonsmooth_mechanics_pedagogical_slides.pdf
+│   └── nonsmooth_mechanics.pdf
 └── porosim/
     └── main.pdf
 ```
