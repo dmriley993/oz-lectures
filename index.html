@@ -2905,7 +2905,7 @@ window.addEventListener('load', applyHash);
     const x1 = x - 0.30;
     if (x1 <= x0) return;
     const N = 14;
-    const yMid = 0.30;
+    const yMid = 0.05;
     const amp = 0.13;
     const points = [`${M.wx(x0)},${M.wy(yMid)}`];
     for (let i = 1; i < N; i++) {
@@ -2934,7 +2934,7 @@ window.addEventListener('load', applyHash);
     else if (isSlipping()) { fillC = '#ffd7ad'; strokeC = '#D95F02'; } // orange = slipping
     else { fillC = '#bcd2e8'; strokeC = '#12355B'; }                  // blue = transient
     gBlock.appendChild(el('rect', {
-      x: M.wx(x - w/2), y: M.wy(0.55),
+      x: M.wx(x - w/2), y: M.wy(0.25),
       width: M.wx(x + w/2) - M.wx(x - w/2),
       height: M.wy(0) - M.wy(0.55),
       fill: fillC, stroke: strokeC, 'stroke-width': '2',
