@@ -1,0 +1,3500 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Nonsmooth contact mechanics — interactive widgets</title>
+<style>
+  body {
+    font-family: 'Open Sans', 'Segoe UI', system-ui, sans-serif;
+    margin: 0;
+    padding: 1.4em 1.8em;
+    background: #fafbfc;
+    color: #1a1a1a;
+  }
+  .container { max-width: 1180px; margin: 0 auto; }
+  h1 {
+    color: #12355B; font-weight: 600;
+    margin: 0 0 0.2em 0; font-size: 1.4em;
+  }
+  .deck-subtitle { color: #555; font-size: 0.92em; margin-bottom: 1.4em; }
+  .tabbar {
+    display: flex; gap: 0.25em;
+    border-bottom: 2px solid #d0d6de;
+    margin-bottom: 1.2em; flex-wrap: wrap;
+  }
+  .tab {
+    background: transparent; border: none;
+    border-bottom: 3px solid transparent;
+    padding: 0.55em 1.0em;
+    font-family: inherit; font-size: 0.92em; font-weight: 500;
+    cursor: pointer; color: #555;
+    margin-bottom: -2px;
+    transition: all 0.15s;
+  }
+  .tab:hover { color: #12355B; }
+  .tab.active {
+    color: #12355B; border-bottom-color: #12355B; font-weight: 600;
+  }
+  .panel { display: none; }
+  .panel.active { display: block; }
+  .controls {
+    display: flex; gap: 0.6em;
+    margin-bottom: 0.9em;
+    flex-wrap: wrap; align-items: center;
+    font-size: 0.9em;
+  }
+  .controls .group-label { color: #555; font-size: 0.85em; margin-right: 0.2em; }
+  button.cbtn {
+    background: white;
+    border: 1px solid #ccc;
+    padding: 0.35em 0.85em;
+    font-family: inherit; font-size: 0.88em;
+    cursor: pointer; border-radius: 3px;
+    transition: all 0.15s;
+  }
+  button.cbtn:hover { background: #f0f4f8; border-color: #12355B; }
+  button.cbtn.active { background: #12355B; color: white; border-color: #12355B; }
+  button.cbtn.warn { color: #B2182B; border-color: #d8a8aa; }
+  button.cbtn.warn:hover { background: #fbeaea; border-color: #B2182B; }
+  label.toggle {
+    font-size: 0.88em; color: #444;
+    display: inline-flex; align-items: center; gap: 0.3em;
+    margin-left: 0.4em; cursor: pointer;
+  }
+  label.toggle input { cursor: pointer; }
+  label.slider {
+    display: inline-flex; align-items: center; gap: 0.5em;
+    font-size: 0.88em; color: #444;
+  }
+  label.slider input[type=range] { width: 140px; }
+  .layout {
+    display: grid;
+    grid-template-columns: 1fr 280px;
+    gap: 1.4em; align-items: start;
+  }
+  @media (max-width: 820px) {
+    .layout { grid-template-columns: 1fr; }
+  }
+  .canvas-wrap {
+    background: white;
+    border: 1px solid #e0e4ea;
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  svg.canvas { display: block; width: 100%; height: auto; }
+  .readout {
+    background: white;
+    border: 1px solid #e0e4ea;
+    border-radius: 4px;
+    padding: 0.9em;
+    font-size: 0.86em; line-height: 1.55;
+  }
+  .readout h3 {
+    margin: 0 0 0.4em 0;
+    font-size: 0.78em; color: #12355B; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.04em;
+  }
+  .readout .row {
+    display: flex; justify-content: space-between;
+    padding: 0.18em 0;
+    border-bottom: 1px solid #f0f2f5;
+  }
+  .readout .row:last-child { border-bottom: none; }
+  .readout .label { color: #555; }
+  .readout .value {
+    font-family: 'Consolas', 'Courier New', monospace;
+    font-weight: 600;
+  }
+  .readout .value.in-cone { color: #1B7837; }
+  .readout .value.outside { color: #B2182B; }
+  .readout .value.zero { color: #888; }
+  .legend {
+    margin-top: 0.9em; padding-top: 0.9em;
+    border-top: 1px solid #f0f2f5;
+    font-size: 0.80em; color: #555;
+  }
+  .legend .swatch {
+    display: inline-block; width: 13px; height: 13px;
+    margin-right: 0.4em; vertical-align: middle; border-radius: 2px;
+  }
+  .legend div { margin: 0.22em 0; }
+  .hint {
+    margin-top: 0.7em;
+    font-size: 0.82em; color: #666; font-style: italic;
+  }
+  .panel-intro {
+    color: #444; font-size: 0.92em;
+    margin-bottom: 0.9em;
+    padding: 0.55em 0.8em;
+    background: #f4f7fa;
+    border-left: 3px solid #12355B; border-radius: 2px;
+  }
+  .panel-intro strong { color: #12355B; }
+  .panel-intro .eq-block {
+    margin: 0.6em 0;
+    padding: 0.5em 0.8em;
+    background: white; border: 1px solid #d8dde4; border-radius: 3px;
+    font-family: 'Computer Modern Serif', 'Latin Modern Roman', 'STIX Two Math', Georgia, serif;
+    font-size: 1.05em;
+    text-align: center;
+  }
+  .panel-intro .eq-block .lhs { color: #12355B; font-style: italic; }
+  .panel-intro .eq-block .rhs { font-style: italic; }
+  .panel-intro .eq-cases { font-size: 0.95em; line-height: 1.6em; margin: 0.5em 0 0 0.8em; }
+  .panel-intro .eq-cases code { background: #f7f7f7; padding: 0 0.2em; border-radius: 2px;
+    font-family: inherit; font-style: italic; font-size: 1em; }
+  /* Collapsible "Read more" pedagogical writeup, sits below the canvas. */
+  .read-more {
+    margin-top: 1.0em;
+    border: 1px solid #d8dde4; border-radius: 4px;
+    background: #fdfdfe;
+    font-size: 0.92em;
+  }
+  .read-more > summary {
+    cursor: pointer; padding: 0.55em 0.9em;
+    color: #12355B; font-weight: 600;
+    list-style: none;
+    display: flex; align-items: center; gap: 0.4em;
+    user-select: none;
+  }
+  .read-more > summary::-webkit-details-marker { display: none; }
+  .read-more > summary::before {
+    content: '▸'; display: inline-block; width: 0.8em;
+    transition: transform 0.15s ease;
+    color: #888;
+  }
+  .read-more[open] > summary::before { transform: rotate(90deg); }
+  .read-more > summary:hover { background: #f4f7fa; }
+  .read-more .rm-body {
+    padding: 0.4em 1.2em 1.0em 1.2em;
+    color: #333; line-height: 1.55em;
+  }
+  .read-more .rm-body h4 {
+    margin: 1.0em 0 0.35em 0; font-size: 0.97em;
+    color: #12355B; font-weight: 600;
+    border-bottom: 1px solid #f0f2f5; padding-bottom: 0.15em;
+  }
+  .read-more .rm-body h4:first-of-type { margin-top: 0.2em; }
+  .read-more .rm-body p { margin: 0.4em 0; }
+  .read-more .rm-body ol { margin: 0.3em 0 0.3em 1.4em; padding: 0; }
+  .read-more .rm-body ol li { margin: 0.35em 0; }
+  .read-more .rm-body .eq-block {
+    margin: 0.5em 0; padding: 0.4em 0.7em;
+    background: white; border: 1px solid #d8dde4; border-radius: 3px;
+    font-family: 'Computer Modern Serif', 'Latin Modern Roman', 'STIX Two Math', Georgia, serif;
+    font-size: 1.0em; text-align: center;
+  }
+  .history-wrap {
+    margin-top: 1em;
+    background: white;
+    border: 1px solid #e0e4ea;
+    border-radius: 4px; overflow: hidden;
+  }
+  .history-wrap svg { display: block; width: 100%; height: auto; }
+  /* Friction gauge for spring-slider */
+  .friction-gauge {
+    margin-top: 0.7em; font-size: 0.85em;
+    padding: 0.5em; background: #f7f7f7; border-radius: 3px;
+  }
+  .friction-gauge .bar {
+    position: relative; height: 14px; margin-top: 0.3em;
+    background: #ddd; border: 1px solid #aaa;
+  }
+  .friction-gauge .bar .needle {
+    position: absolute; top: -2px; bottom: -2px;
+    width: 3px; background: #B2182B;
+  }
+  .friction-gauge .bar .center {
+    position: absolute; top: 0; bottom: 0; left: 50%; width: 1px; background: #888;
+  }
+  .friction-gauge .ticks {
+    display: flex; justify-content: space-between;
+    font-family: monospace; font-size: 0.8em; color: #666;
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+<h1>Nonsmooth contact mechanics — interactive widgets</h1>
+<div class="deck-subtitle">
+  Four demonstrations: two geometric (normal cones, projections) and two physical (bouncing ball, spring-slider).
+  Pick the shape <em>K</em> on each geometry tab; press Play on each physics tab.
+</div>
+
+<div class="tabbar" id="tabbar">
+  <button class="tab active" data-tab="ncone">1. Normal cone</button>
+  <button class="tab" data-tab="proj">2. Projection</button>
+  <button class="tab" data-tab="ball">3. Bouncing ball</button>
+  <button class="tab" data-tab="slider">4. Spring-slider (1D friction)</button>
+  <button class="tab" data-tab="iterate">5. Coulomb 2D iteration</button>
+</div>
+
+<!-- ====================================================================
+     TAB 1: NORMAL CONE (definition only, no projection)
+     ==================================================================== -->
+<div class="panel active" id="panel-ncone">
+  <div class="panel-intro">
+    <strong>What this shows.</strong> The normal cone <em>N<sub>K</sub></em>(<em>w</em>) at a point <em>w</em> ∈ <em>K</em>.
+    <div class="eq-block">
+      <span class="lhs">N<sub>K</sub>(w)</span> = { <span class="rhs">η</span> : ⟨<span class="rhs">η</span>, <span class="rhs">y</span> − <span class="rhs">w</span>⟩ ≤ 0&nbsp; for all <span class="rhs">y</span> ∈ <em>K</em> }
+    </div>
+    Drag <em>w</em> — it stays inside <em>K</em>. Orange shading (or ray) is <em>N<sub>K</sub></em>(<em>w</em>):
+    <div class="eq-cases">
+      • interior of <em>K</em>:&nbsp; <em>N<sub>K</sub></em>(<em>w</em>) = {0}<br>
+      • smooth boundary (disk, half-plane):&nbsp; <em>N<sub>K</sub></em>(<em>w</em>) = ℝ<sub>≥0</sub> · <em>n</em>(<em>w</em>) (single outward ray)<br>
+      • polygon edge:&nbsp; <em>N<sub>K</sub></em>(<em>w</em>) = ℝ<sub>≥0</sub> · <em>n</em><sub>edge</sub><br>
+      • polygon corner:&nbsp; <em>N<sub>K</sub></em>(<em>w</em>) = wedge between adjacent edge normals<br>
+      • cone apex (<em>K</em> = Lorenz cone):&nbsp; <em>N<sub>K</sub></em>(0) = −<em>K</em><sup>*</sup>
+    </div>
+    Two optional checks for whether a candidate vector <em>η</em> ∈ <em>N<sub>K</sub></em>(<em>w</em>):
+    the <strong>angle test</strong> evaluates ⟨<em>η</em>, <em>y</em>−<em>w</em>⟩ at a single probe <em>y</em> ∈ <em>K</em>
+    (a <em>positive</em> value <em>disproves</em> membership; non-positive is consistent but not sufficient);
+    the <strong>half-plane test</strong> certifies the universal claim by showing the half-plane
+    {<em>p</em>: ⟨<em>η</em>, <em>p</em>−<em>w</em>⟩ ≤ 0}, which must contain <em>K</em>.
+  </div>
+  <div class="controls">
+    <span class="group-label">Set <em>K</em>:</span>
+    <button class="cbtn active" data-shape="line" data-tab="ncone">Real line ℝ<sub>+</sub></button>
+    <button class="cbtn" data-shape="disk" data-tab="ncone">Disk</button>
+    <button class="cbtn" data-shape="polygon" data-tab="ncone">Polygon</button>
+    <button class="cbtn" data-shape="coulomb" data-tab="ncone">Lorenz cone</button>
+    <button class="cbtn" data-shape="halfplane" data-tab="ncone">Half-plane</button>
+    <label class="toggle"><input type="checkbox" id="ncone-angle"> angle test (drag <em>y</em> ∈ <em>K</em>)</label>
+    <label class="toggle"><input type="checkbox" id="ncone-halfplane"> half-plane test (drag <em>η</em>)</label>
+  </div>
+  <div class="layout">
+    <div class="canvas-wrap">
+      <svg id="canvas-ncone" class="canvas" viewBox="0 0 700 500" xmlns="http://www.w3.org/2000/svg"></svg>
+    </div>
+    <div class="readout" id="readout-ncone"></div>
+  </div>
+  <details class="read-more">
+    <summary>Read more — what you're seeing and why it matters</summary>
+    <div class="rm-body">
+
+      <h4>What you're seeing</h4>
+      <p>
+        A point <em>w</em> ∈ <em>K</em> and the normal cone at that point. Where you put <em>w</em> changes
+        what <em>N<sub>K</sub></em>(<em>w</em>) looks like: a single point at interior, an outward ray on smooth
+        boundary, a wedge at corners. The two test toggles let you check whether a candidate vector <em>η</em>
+        is actually in <em>N<sub>K</sub></em>(<em>w</em>): the angle test evaluates the inner product at one probe
+        <em>y</em> ∈ <em>K</em>, and the half-plane test shades the entire half-plane <em>η</em> defines.
+      </p>
+
+      <h4>The asymmetry between the two tests</h4>
+      <p>
+        They look symmetric (both involve ⟨<em>η</em>, <em>y</em> − <em>w</em>⟩ ≤ 0) but they're not equivalent.
+        The angle test is <em>refutational</em>: a positive value at any single probe disproves <em>η</em> ∈
+        <em>N<sub>K</sub></em>(<em>w</em>). But a non-positive value proves nothing — the next probe might be
+        positive. The half-plane test is <em>confirmational</em>: it shows the entire half-plane defined by
+        <em>η</em>, and if <em>K</em> sits inside it, then ⟨<em>η</em>, <em>y</em> − <em>w</em>⟩ ≤ 0
+        <em>simultaneously</em> for all <em>y</em>. The universal quantifier is what the half-plane shading
+        enforces visually.
+      </p>
+      <p>
+        This is the same reason that in a maths proof, "I checked one example" doesn't establish a
+        universal claim, while "I gave a structural argument" does. The half-plane test <em>is</em> the
+        structural argument, made geometric.
+      </p>
+
+      <h4>What to try</h4>
+      <ol>
+        <li>Switch to the polygon. Drop <em>w</em> at an edge midpoint, then drag it to a corner. Watch
+          the normal cone go from a single ray to a fan of rays — that's the cone "opening up" as you
+          approach a non-smooth feature of <em>K</em>.</li>
+        <li>On the polygon, turn on the angle test. Start with <em>η</em> aligned with the edge normal
+          (the test passes). Now rotate <em>η</em> a few degrees away — watch the inner product become
+          positive at certain probes. The angle test catches the violation; the half-plane test would
+          not show <em>K</em> inside the half-plane any more. Both are consistent.</li>
+        <li>Switch to the Lorenz cone and drag <em>w</em> to the apex. The normal cone is now
+          <em>N<sub>K</sub></em>(0) = −<em>K</em><sup>*</sup>: a wedge in the lower half-plane. This
+          is the regime that makes "take-off" possible in the friction-cone interpretation — the apex is
+          where the reaction can be zero and still admit a wide range of velocity behaviors.</li>
+        <li>On the disk, drag <em>w</em> around the boundary. The normal cone is a single outward ray
+          everywhere — no corners, so no fans. Compare with the polygon's behavior at corners: that's
+          the difference between smooth and non-smooth convex sets.</li>
+      </ol>
+
+      <p style="font-size: 0.88em; color: #666; margin-top: 0.8em;">
+        The pedagogical takeaway: <em>N<sub>K</sub></em>(<em>w</em>) is not just "the outward normal at <em>w</em>" —
+        it generalizes the idea to non-smooth boundaries by becoming a <em>set</em> of admissible
+        directions. The cone structure encodes the idea that as long as you push outward in <em>some</em>
+        direction allowed by the local boundary geometry, you don't violate the constraint.
+      </p>
+    </div>
+  </details>
+
+</div>
+
+<!-- ====================================================================
+     TAB 2: PROJECTION
+     ==================================================================== -->
+<div class="panel" id="panel-proj">
+  <div class="panel-intro">
+    <strong>What this shows.</strong> The closest-point projection of <em>z</em> onto <em>K</em>, and the
+    geometric identity that links it to the normal cone.
+    <div class="eq-block">
+      <span class="lhs">w</span> = proj<sub><em>K</em></sub>(<span class="rhs">z</span>) := arg min<sub><span class="rhs">y</span> ∈ <em>K</em></sub> ‖<span class="rhs">y</span> − <span class="rhs">z</span>‖
+    </div>
+    <strong>Projection identity:</strong> the residual <em>z</em>−<em>w</em> sits inside the normal cone at <em>w</em>:
+    <div class="eq-block">
+      <span class="lhs">w</span> = proj<sub><em>K</em></sub>(<span class="rhs">z</span>)&nbsp;&nbsp;⇔&nbsp;&nbsp;
+      <span class="lhs">w</span> ∈ <em>K</em>&nbsp;&nbsp;and&nbsp;&nbsp; <span class="rhs">z</span> − <span class="lhs">w</span> ∈ <em>N<sub>K</sub></em>(<span class="lhs">w</span>)
+    </div>
+    Drag <em>z</em>; <em>w</em> follows. The red residual arrow lies inside the orange normal cone — that's the identity made visible.
+    For the Lorenz cone the De Saxcé toggle shows the friction-cone shift
+    <em>ṽ</em> = (v<sub>t</sub>, v<sub>n</sub> + μ‖v<sub>t</sub>‖) that makes
+    proj<sub><em>K</em><sub>μ</sub></sub>(<em>r</em> − ρ<em>ṽ</em>) pick the correct face during sliding.
+  </div>
+  <div class="controls">
+    <span class="group-label">Set <em>K</em>:</span>
+    <button class="cbtn active" data-shape="line" data-tab="proj">Real line ℝ<sub>+</sub></button>
+    <button class="cbtn" data-shape="disk" data-tab="proj">Disk</button>
+    <button class="cbtn" data-shape="polygon" data-tab="proj">Polygon</button>
+    <button class="cbtn" data-shape="coulomb" data-tab="proj">Lorenz cone</button>
+    <button class="cbtn" data-shape="halfplane" data-tab="proj">Half-plane</button>
+    <label class="toggle"><input type="checkbox" id="proj-cone" checked> normal cone</label>
+    <label class="toggle"><input type="checkbox" id="proj-angle"> angle test</label>
+    <label class="toggle"><input type="checkbox" id="proj-shift"> De Saxcé shift (Lorenz only)</label>
+  </div>
+  <div class="layout">
+    <div class="canvas-wrap">
+      <svg id="canvas-proj" class="canvas" viewBox="0 0 700 500" xmlns="http://www.w3.org/2000/svg"></svg>
+    </div>
+    <div class="readout" id="readout-proj"></div>
+  </div>
+  <details class="read-more">
+    <summary>Read more — what you're seeing and why it matters</summary>
+    <div class="rm-body">
+
+      <h4>What you're seeing</h4>
+      <p>
+        Drag <em>z</em> anywhere in the plane; <em>w</em> = proj<sub><em>K</em></sub>(<em>z</em>) is the closest
+        point in <em>K</em>. The red residual arrow is <em>z</em> − <em>w</em>: how far you'd have to travel
+        to leave <em>K</em> from <em>w</em> back to <em>z</em>. The orange ray (or wedge) is the
+        normal cone <em>N<sub>K</sub></em>(<em>w</em>) at the projection point. The geometric claim is
+        that the residual always lies inside that cone.
+      </p>
+
+      <h4>Why the residual is normal</h4>
+      <p>
+        For smooth boundaries (disk, half-plane), this just says "the closest point on the boundary is
+        where the line from <em>z</em> to <em>w</em> hits perpendicularly" — a fact you've known since
+        high school. The new content is what happens at corners and edges. There, "perpendicular" isn't
+        well-defined; the boundary has a corner. The right generalization isn't "perpendicular in some
+        direction" but "perpendicular to <em>every</em> direction you could move along the boundary while
+        staying in <em>K</em>." That set of "every direction" is exactly the normal cone.
+      </p>
+      <p>
+        The proof in one line: if the residual <em>were</em> outside <em>N<sub>K</sub></em>(<em>w</em>), there
+        would be a direction <em>y</em> − <em>w</em> (some <em>y</em> in <em>K</em> close to <em>w</em>)
+        such that moving slightly toward <em>y</em> from <em>w</em> would <em>decrease</em> the distance
+        to <em>z</em>. So <em>w</em> wasn't actually the closest point. Contradiction.
+      </p>
+
+      <h4>The De Saxc&eacute; shift, briefly</h4>
+      <p>
+        For the friction cone, naive normality ("residual is the friction reaction <em>r</em>") fails: during
+        sliding, the velocity is along an edge of <em>K<sub>μ</sub></em> but the reaction is on a face of
+        <em>K<sub>μ</sub></em> — they're <em>not</em> perpendicular in the standard inner product. The shift
+        <em>ṽ</em> = (<em>v<sub>t</sub></em>, <em>v<sub>n</sub></em>+μ‖<em>v<sub>t</sub></em>‖) corrects exactly
+        this: it bends velocity space so that "<em>r</em> on the active face of <em>K<sub>μ</sub></em>" pairs with
+        "<em>ṽ</em> on the dual face of <em>K<sub>μ</sub></em><sup>*</sup>" via the projection identity.
+        The toggle on the canvas shows this geometrically — turn it on and watch <em>v</em> get rotated to
+        <em>ṽ</em>.
+      </p>
+
+      <h4>What to try</h4>
+      <ol>
+        <li>On the polygon, drag <em>z</em> near a corner. Watch the residual rotate: as <em>z</em>
+          crosses different "Voronoi regions" of the polygon, <em>w</em> jumps between corner and edge
+          projections. The residual stays in the appropriate normal cone (single ray on edges, wedge at
+          corners) the whole time.</li>
+        <li>On the disk, drag <em>z</em> from far outside to right next to the boundary. The
+          residual length shrinks smoothly to zero. There's no jump because the disk has no corners.</li>
+        <li>On the Lorenz cone with the De&nbsp;Saxc&eacute; toggle <em>off</em>: drag <em>z</em>
+          to a point where <em>v<sub>n</sub></em> is slightly negative but <em>v<sub>t</sub></em> is large.
+          The naive projection gives <em>w</em> = 0 (apex) — the projection is "stuck", and the residual
+          isn't normal to a friction face. Now turn the De&nbsp;Saxc&eacute; toggle <em>on</em>: <em>w</em>
+          moves to a slanted face, residual becomes normal to it. The shift made the projection do the
+          right physical thing.</li>
+      </ol>
+
+      <p style="font-size: 0.88em; color: #666; margin-top: 0.8em;">
+        The projection identity is the mathematical bridge between the two tabs: in the normal-cone tab
+        you check that a vector is in <em>N<sub>K</sub></em>(<em>w</em>); in the projection tab you discover
+        that one vector — the residual <em>z</em> − <em>w</em> — automatically is. Every projection
+        <em>creates</em> a normal-cone witness for free.
+      </p>
+    </div>
+  </details>
+
+</div>
+
+<!-- ====================================================================
+     TAB 3: BOUNCING BALL
+     ==================================================================== -->
+<div class="panel" id="panel-ball">
+  <div class="panel-intro">
+    <strong>What this shows.</strong> Time-stepping a point mass under gravity onto a rigid floor (Signorini at velocity level).
+    At each step the contact reaction is one explicit projection: <em>r<sup>n+1</sup></em> = max(−<em>m·v</em><sup>free</sup>, 0).
+    The ball bounces elastically — gap stays exactly ≥ 0 with no drift, the reaction <em>r</em> flicks on for a single step at impact and is exactly zero between bounces.
+  </div>
+  <div class="controls">
+    <button class="cbtn" id="ball-play">▶ Play</button>
+    <button class="cbtn" id="ball-step">Step</button>
+    <button class="cbtn warn" id="ball-reset">Reset</button>
+  </div>
+  <div class="layout">
+    <div class="canvas-wrap">
+      <svg id="canvas-ball" class="canvas" viewBox="0 0 700 360" xmlns="http://www.w3.org/2000/svg"></svg>
+    </div>
+    <div class="readout" id="readout-ball"></div>
+  </div>
+  <div class="history-wrap">
+    <svg id="history-ball" viewBox="0 0 1000 220" xmlns="http://www.w3.org/2000/svg"></svg>
+  </div>
+  <details class="read-more">
+    <summary>Read more — what you're seeing and why it matters</summary>
+    <div class="rm-body">
+
+      <h4>What you're seeing</h4>
+      <p>
+        A point mass falling under gravity, bouncing off a rigid floor, with restitution <em>e</em> = 1
+        (perfect rebound). The history chart shows the gap <em>q</em>, velocity <em>v</em>, and reaction
+        impulse <em>r</em> over time. The reaction is zero except at impact instants, where it spikes —
+        that spike is an <em>impulsive</em> reaction, not a force.
+      </p>
+
+      <h4>Why it has to be an impulse</h4>
+      <p>
+        The classical Newton equation <em>m</em>&thinsp;<em>a</em> = <em>F</em> + <em>r</em> doesn't make
+        sense at impact: the velocity changes discontinuously (from −<em>v</em> to +<em>e&thinsp;v</em>),
+        so acceleration is infinite, so the reaction "force" would have to be infinite for a single instant.
+        That's not a function — it's a Dirac delta. The Moreau&ndash;Jean velocity-level scheme handles this
+        by writing the dynamics in terms of <em>integrals</em> rather than pointwise forces:
+      </p>
+      <div class="eq-block">
+        <em>m</em> (<em>v</em><sup>+</sup> − <em>v</em><sup>−</sup>) = ∫<em>r</em> d<em>t</em>
+      </div>
+      <p>
+        and treating ∫<em>r</em>&thinsp;d<em>t</em> as the primary unknown — an impulse, with units of
+        momentum, not force. At smooth times the impulse equals (force × Δ<em>t</em>) and ordinary BE applies;
+        at impact times the impulse jumps the velocity directly. <strong>One scheme handles both regimes</strong> —
+        no need to special-case impacts.
+      </p>
+
+      <h4>What to try</h4>
+      <ol>
+        <li>Watch the height of successive bounces. With <em>e</em> = 1 they should be equal — energy
+          conserved exactly. Look at the <em>q</em> trace in the history chart: peaks at constant height.
+          (If you change <em>e</em> in source: peaks decay geometrically as <em>e<sup>2k</sup></em>.)</li>
+        <li>Pause at an impact instant. The <em>v</em> trace shows a vertical jump from negative to
+          positive — that's the impulse acting in zero time. The <em>r</em> trace shows a spike at exactly
+          that instant.</li>
+        <li>Note that between impacts, <em>r</em> = 0 and the dynamics is just gravity. Moreau&ndash;Jean
+          doesn't add fake "compliance" at the floor; the contact is rigid except at the impact event.
+          Compare to a regularized scheme that would model the floor as a stiff spring and require
+          much smaller time steps near impact.</li>
+      </ol>
+
+      <p style="font-size: 0.88em; color: #666; margin-top: 0.8em;">
+        The pedagogical message: nonsmooth dynamics doesn't mean small <em>ε</em>. It means choosing
+        the right primary unknown (impulse, not force) and the right inclusion (velocity-level
+        complementarity, not pointwise force balance). The cost is conceptual; the payoff is no
+        stiffness, no smoothing parameter, exact contact.
+      </p>
+    </div>
+  </details>
+
+</div>
+
+<!-- ====================================================================
+     TAB 4: SPRING-SLIDER
+     ==================================================================== -->
+<div class="panel" id="panel-slider">
+  <div class="panel-intro">
+    <strong>What this shows.</strong> Block on a rough floor pulled by a force <em>f</em>(<em>t</em>),
+    velocity-level Coulomb friction <em>r</em> ∈ [−1, 1].
+    While the block is at rest, friction sits anywhere in the interval that balances
+    spring force minus applied force. When |<em>f</em> − <em>kx</em>| crosses 1, friction saturates
+    and the block breaks free. Drop <em>f</em> back to zero: the block stops where the spring force
+    becomes small enough for friction to hold it again — generally <em>not</em> at <em>x</em> = 0.
+    The friction gauge shows <em>r</em> as a needle inside the admissible interval.
+  </div>
+  <div class="controls">
+    <button class="cbtn" id="slider-play">▶ Play</button>
+    <button class="cbtn" id="slider-step">Step</button>
+    <button class="cbtn warn" id="slider-reset">Reset</button>
+    <label class="slider">applied force <em>f</em>:
+      <input type="range" id="slider-force" min="-1.6" max="1.6" step="0.02" value="0">
+      <span id="slider-force-val">+0.00</span>
+    </label>
+    <label class="toggle"><input type="checkbox" id="slider-regularize"> Regularize: <em>r</em><sub>ε</sub> = −tanh(<em>v</em>/ε)</label>
+    <label class="slider" id="slider-eps-wrap" style="display:none;">ε:
+      <input type="range" id="slider-eps" min="0.01" max="0.5" step="0.01" value="0.10">
+      <span id="slider-eps-val">0.10</span>
+    </label>
+  </div>
+  <div class="layout">
+    <div class="canvas-wrap">
+      <svg id="canvas-slider" class="canvas" viewBox="0 0 700 280" xmlns="http://www.w3.org/2000/svg"></svg>
+    </div>
+    <div class="readout" id="readout-slider"></div>
+  </div>
+  <div class="history-wrap" style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px;">
+    <svg id="history-slider-rf" viewBox="0 0 360 220" xmlns="http://www.w3.org/2000/svg"></svg>
+    <svg id="history-slider-v"  viewBox="0 0 360 220" xmlns="http://www.w3.org/2000/svg"></svg>
+    <svg id="history-slider-x"  viewBox="0 0 360 220" xmlns="http://www.w3.org/2000/svg"></svg>
+  </div>
+  <details class="read-more">
+    <summary>Read more — what you're seeing and why it matters</summary>
+    <div class="rm-body">
+
+      <h4>What you're seeing</h4>
+      <p>
+        A unit mass on a spring, dragged left/right by an applied force <em>f</em>, with Coulomb friction
+        |<em>r</em>| ≤ 1 against a rigid floor. The history charts show the friction <em>r</em>, the
+        position <em>x</em>, and the velocity <em>v</em> over time, plus the "applied load" <em>f</em>−<em>kx</em>
+        (the net force friction has to balance for the block to remain stuck). The Moreau-projection
+        scheme treats friction as a multi-valued inclusion: <em>r</em> is whatever value in [−1, 1] makes
+        the BE equation consistent. The regularize toggle replaces this with the smooth approximation
+        <em>r<sub>ε</sub></em> = −tanh(<em>v</em>/ε), solving fully implicitly via Newton iteration on
+        a scalar nonlinear equation.
+      </p>
+
+      <h4>Why the toggle matters</h4>
+      <p>
+        The two methods agree in the slip regime: when |<em>v</em>|/ε is large, tanh saturates at ±1, and
+        the regularized friction acts essentially like Coulomb. They diverge in the stick regime. With
+        Moreau projection, when the load |<em>f</em>−<em>kx</em>| ≤ 1, the friction takes the value
+        <em>exactly</em> needed to keep <em>v</em> = 0; the block is locked, position frozen — that's
+        exact static friction with hysteresis. With regularization, "stuck" means
+        <em>r<sub>ε</sub></em> = −tanh(<em>v</em>/ε) ≈ 0, which requires <em>v</em> → 0 but never
+        reaches it; the block creeps slowly back to <em>x</em> = 0 because tiny residual spring
+        forces produce tiny residual velocities. Hysteresis is broken, asymptotically.
+      </p>
+      <p>
+        You can <em>see</em> this in the position chart: the solid Moreau trace stays put after slip
+        ends; the dashed regularized trace drifts. As ε decreases the drift slows, but it never disappears.
+        This is the central pedagogical point about regularization — it's a faithful
+        approximation of <em>dynamics</em>, but it can be a wrong approximation of <em>statics</em>.
+      </p>
+
+      <h4>The implicit-BE structure</h4>
+      <p>
+        Both methods are fully implicit: the friction value at the new step depends on the new step's
+        velocity. For Moreau, this resolves into a one-shot projection (<em>r<sup>n+1</sup></em> = clip of
+        a known expression to [−1, 1]). For regularization, it's a nonlinear scalar equation
+      </p>
+      <div class="eq-block">
+        (<em>m</em>+<em>h</em><sup>2</sup><em>k</em>) <em>v<sup>n+1</sup></em> + <em>h</em> tanh(<em>v<sup>n+1</sup></em>/ε)
+        = <em>v<sup>n</sup></em> + <em>h</em>(<em>f</em>−<em>kx<sup>n</sup></em>)
+      </div>
+      <p>
+        solved by Newton iteration. The Jacobian (<em>m</em>+<em>h</em><sup>2</sup><em>k</em>) +
+        (<em>h</em>/ε)&thinsp;sech<sup>2</sup>(<em>v</em>/ε) is bounded below by <em>m</em>+<em>h</em><sup>2</sup><em>k</em> &gt; 0,
+        so Newton is well-posed; convergence is in 4&ndash;6 iterations across the ε range. <strong>Stiffness
+        from small ε doesn't break the implicit solver</strong> — it just makes the linearization more
+        sensitive near zero, which Newton handles fine.
+      </p>
+
+      <h4>What to try</h4>
+      <ol>
+        <li>Drag the block to <em>x</em> = 0.5, set <em>f</em> = 0, press Play. With Moreau: the block
+          sits perfectly still — static friction balances the spring. With regularization on (any ε):
+          watch the dashed traces drift slowly; the block creeps back toward <em>x</em> = 0.</li>
+        <li>Set ε = 0.01 (small). The dashed and solid traces almost coincide; the regularized version
+          matches Moreau closely in dynamics. But position-chart drift after slip is still nonzero — the
+          creep is small but not gone.</li>
+        <li>Set ε = 0.5 (large). The traces visibly separate. The regularized friction transitions
+          gradually as load approaches 1; slip starts before |load| = 1, and stick is "soft" — there's no
+          sharp threshold. Useful when you actually want viscous-like damping, wrong when you want
+          Coulomb.</li>
+        <li>Sweep <em>f</em> from −1.5 to 1.5 and back. The Moreau friction trace traces out a hysteresis
+          loop: <em>r</em> jumps between ±1 when slip happens, sits in (−1, 1) during stick. The regularized
+          trace is a smooth curve — no hysteresis loop, just a sigmoidal response. Smoothness has a price.</li>
+      </ol>
+
+      <p style="font-size: 0.88em; color: #666; margin-top: 0.8em;">
+        The choice of method is not just numerical taste. Moreau is right for problems where exact stick
+        and hysteresis matter (geomechanics fault models, granular packing). Regularization is fine for
+        problems where the friction is just a damping mechanism (machinery, robotics). The widget lets
+        you see exactly what each one buys and gives up.
+      </p>
+    </div>
+  </details>
+
+</div>
+
+<!-- ====================================================================
+     TAB 5: COULOMB 2D ITERATION
+     ==================================================================== -->
+<div class="panel" id="panel-iterate">
+  <div class="panel-intro">
+    <strong>What this shows.</strong> The fixed-point iteration for a single 2D contact (<em>W</em> = <em>I</em>),
+    rendered as a single combined panel matching the lecture slide. The wide gray wedge is the polar cone
+    <em>K<sub>μ</sub></em><sup>*</sup> (where <em>ṽ</em> lives); the narrow softorange wedge inside it is
+    <em>K<sub>μ</sub></em> (where <em>r</em> lives). Drag <em>v</em><sup>free</sup> (gray dashed arrow); the
+    iteration solves for the reaction <em>r</em> that makes everything consistent.
+    With <em>W</em> = <em>I</em>: <em>v</em> = <em>v</em><sup>free</sup> + <em>r</em>;
+    <em>ṽ</em> = (v<sub>t</sub>, v<sub>n</sub>+μ|v<sub>t</sub>|);
+    <em>r<sup>k+1</sup></em> = proj<sub><em>K<sub>μ</sub></em></sub>(<em>r<sup>k</sup></em> − ρ<em>ṽ</em>).
+    At convergence: <em>r</em>·<em>ṽ</em> = 0 (visible in readout) and the green right-angle marker appears
+    when both vectors are nonzero (sliding regime).
+  </div>
+  <div class="controls">
+    <button class="cbtn" id="iter-step">▶ Iterate once</button>
+    <button class="cbtn" id="iter-run">Run to convergence</button>
+    <button class="cbtn warn" id="iter-reset">Reset (r<sup>0</sup> = 0)</button>
+    <label class="slider">step size ρ:
+      <input type="range" id="iter-rho" min="0.05" max="1.0" step="0.05" value="0.5">
+      <span id="iter-rho-val">0.50</span>
+    </label>
+  </div>
+  <div class="layout">
+    <div class="canvas-wrap">
+      <svg id="canvas-iterate" class="canvas" viewBox="0 0 1100 540" xmlns="http://www.w3.org/2000/svg"></svg>
+    </div>
+    <div class="readout" id="readout-iterate"></div>
+  </div>
+  <details class="read-more">
+    <summary>Read more — what you're seeing and why it matters</summary>
+    <div class="rm-body">
+
+      <h4>What you're seeing</h4>
+      <p>
+        A single 2D contact with <em>W</em> = <em>I</em>. Two cones share an origin: the <strong>primal cone</strong>
+        <em>K<sub>μ</sub></em> (narrow, softorange — where reactions <em>r</em> live) and the
+        <strong>polar cone</strong> <em>K<sub>μ</sub></em><sup>*</sup> (wide, gray — where the De&nbsp;Saxc&eacute; shifted
+        velocity <em>ṽ</em> lives). The user input is <em>v</em><sup>free</sup> (gray dashed arrow):
+        the velocity the contact <em>would</em> have if no reaction acted. The iteration searches for
+        a reaction <em>r</em> that makes the actual velocity <em>v = v</em><sup>free</sup>+<em>r</em> physically
+        admissible — meaning <em>ṽ</em>(<em>v</em>) lands in the polar cone <em>K<sub>μ</sub></em><sup>*</sup>
+        with <em>r</em>·<em>ṽ</em> = 0. The trial point <em>T<sup>k</sup></em> is the unconstrained step;
+        the projection arrow shows the constraint snapping it back onto <em>K<sub>μ</sub></em>.
+      </p>
+
+      <h4>The theorem driving the picture</h4>
+      <p>
+        The contact problem with Coulomb friction is the cone-complementarity system
+      </p>
+      <div class="eq-block">
+        <em>r</em> ∈ <em>K<sub>μ</sub></em>,&nbsp;&nbsp; <em>ṽ</em>(<em>v</em>) ∈ <em>K<sub>μ</sub></em><sup>*</sup>,&nbsp;&nbsp;
+        <em>r</em> · <em>ṽ</em>(<em>v</em>) = 0.
+      </div>
+      <p>
+        The orthogonality <em>r</em>·<em>ṽ</em> = 0 — together with the cone memberships — forces exactly one of three
+        regimes to hold at the solution:
+      </p>
+      <ol>
+        <li><strong>Sticking:</strong> <em>ṽ</em> = 0, <em>r</em> in the strict interior of <em>K<sub>μ</sub></em>.
+          Friction is below saturation; the contact is locked.</li>
+        <li><strong>Sliding:</strong> <em>r</em> on a slanted face of <em>K<sub>μ</sub></em>,
+          <em>ṽ</em> on the dual face of <em>K<sub>μ</sub></em><sup>*</sup>, perpendicular to each other in the inner
+          product. Friction is saturated; relative motion happens, and its direction is fixed by which face
+          <em>r</em> sits on.</li>
+        <li><strong>Take-off:</strong> <em>r</em> = 0, <em>ṽ</em> free in <em>K<sub>μ</sub></em><sup>*</sup>.
+          The contact has separated; no reaction.</li>
+      </ol>
+      <p>
+        The iteration solves this via the De&nbsp;Saxc&eacute; fixed-point map: at each step,
+        compute the trial <em>T<sup>k</sup></em> = <em>r<sup>k</sup></em> − ρ<em>ṽ<sup>k</sup></em>
+        (the gradient-like step that <em>would</em> reduce <em>r</em>·<em>ṽ</em> if there were no constraint), then
+        project: <em>r<sup>k+1</sup></em> = proj<sub><em>K<sub>μ</sub></em></sub>(<em>T<sup>k</sup></em>).
+        A fixed point of this map satisfies the complementarity system above — that's why the iteration
+        converges to a physically admissible reaction.
+      </p>
+
+      <h4>What to try</h4>
+      <ol>
+        <li>Drag <em>v</em><sup>free</sup> into the upper half-plane (<em>v</em><sub>n</sub> &gt; 0).
+          Run to convergence. <em>r</em> collapses to the origin (no red arrow); <em>ṽ</em> sits in the
+          strict interior of <em>K<sub>μ</sub></em><sup>*</sup>. <strong>Take-off</strong>: the contact has separated,
+          and any non-negative normal velocity is admissible without a reaction. Why is there no
+          right-angle marker? <em>(Hint: the orthogonality </em>r<em>·</em>ṽ<em> = 0 is trivially
+          0&thinsp;·&thinsp;</em>ṽ<em> = 0 — true but uninformative.)</em></li>
+        <li>Drag <em>v</em><sup>free</sup> straight down (<em>v<sub>t</sub></em> ≈ 0,
+          <em>v<sub>n</sub></em> = −1). Run. <em>ṽ</em> collapses to the apex (no blue arrow); <em>r</em>
+          ends up on the centerline of <em>K<sub>μ</sub></em> (interior). <strong>Sticking</strong>: the contact is
+          locked, friction strictly below saturation. Why is there no right-angle marker? <em>(Same
+          reason as above — </em>r<em>·</em>ṽ<em> = </em>r<em>·</em>0<em> = 0 trivially.)</em></li>
+        <li>Drag <em>v</em><sup>free</sup> diagonally (e.g. <em>v<sub>t</sub></em> = 1,
+          <em>v<sub>n</sub></em> = −0.5). Run. <em>r</em> lands on a slanted edge of
+          <em>K<sub>μ</sub></em>, <em>ṽ</em> on the corresponding edge of <em>K<sub>μ</sub></em><sup>*</sup>,
+          and the green right-angle marker appears. <strong>Sliding</strong>: friction saturated,
+          relative motion in a specific direction. <em>This</em> is when <em>r</em>·<em>ṽ</em> = 0 is the
+          non-trivial orthogonality — both vectors are nonzero, and their inner product vanishes
+          because they sit on mutually-dual faces of the two cones.</li>
+        <li>Cross between regimes by sweeping <em>v</em><sup>free</sup> across the horizontal axis
+          <em>v</em><sub>n</sub> = 0. Above: take-off. Below: sliding or sticking (depending on
+          how much tangential velocity you have). Watch <em>r</em> jump discontinuously between the
+          apex and an edge — but <em>v</em><sup>free</sup> moves continuously. The regime change is
+          discontinuous in the <em>output</em>, not the input; this is what makes nonsmooth
+          time-stepping schemes work without special-casing.</li>
+        <li>Decrease ρ to 0.1, then increase to 0.9. At small ρ the trial <em>T<sup>k</sup></em> is near
+          <em>r<sup>k</sup></em> and convergence is slow but smooth. At large ρ the trial overshoots,
+          projection clips heavily, and convergence may oscillate. ρ trades step size against stability —
+          exactly like in any gradient-projection method.</li>
+      </ol>
+
+      <p style="font-size: 0.88em; color: #666; margin-top: 0.8em;">
+        What changes for general <em>W</em>: the trial direction is no longer aligned with −<em>ṽ</em> in
+        the standard inner product, so the geometric mapping from <em>v</em><sup>free</sup> to regime
+        warps. The cone-complementarity theorem and the iteration scheme are unchanged; only the
+        picture distorts.
+      </p>
+    </div>
+  </details>
+
+</div>
+
+</div> <!-- /container -->
+
+<script>
+'use strict';
+
+// =========================================================================
+// SHARED UTILITIES
+// =========================================================================
+const SVGNS = 'http://www.w3.org/2000/svg';
+
+function el(tag, attrs = {}) {
+  const e = document.createElementNS(SVGNS, tag);
+  for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, v);
+  return e;
+}
+
+function clear(g) { while (g.firstChild) g.removeChild(g.firstChild); }
+function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
+
+function makeMapping(W, H, X_MIN, X_MAX, Y_MIN, Y_MAX) {
+  const SX = W / (X_MAX - X_MIN);
+  const SY = H / (Y_MAX - Y_MIN);
+  return {
+    SX, SY, W, H, X_MIN, X_MAX, Y_MIN, Y_MAX,
+    wx: (xs) => (xs - X_MIN) * SX,
+    wy: (ys) => H - (ys - Y_MIN) * SY,
+    ux: (px) => px / SX + X_MIN,
+    uy: (py) => (H - py) / SY + Y_MIN,
+    fromEvent: function(svg, evt) {
+      const rect = svg.getBoundingClientRect();
+      const cx = evt.touches ? evt.touches[0].clientX : evt.clientX;
+      const cy = evt.touches ? evt.touches[0].clientY : evt.clientY;
+      const xPx = (cx - rect.left) * (W / rect.width);
+      const yPx = (cy - rect.top) * (H / rect.height);
+      return { x: this.ux(xPx), y: this.uy(yPx) };
+    }
+  };
+}
+
+function makeDragSystem(svg, getMapping, getTargets, onUpdate) {
+  let dragKey = null;
+  function pick(p) {
+    const targets = getTargets();
+    let best = null, bestD = Infinity;
+    for (const t of targets) {
+      if (t.disabled && t.disabled()) continue;
+      const pos = t.getPos();
+      const d = Math.hypot(p.x - pos.x, p.y - pos.y);
+      if (d < (t.hitRadius ?? 0.4) && d < bestD) { bestD = d; best = t.key; }
+    }
+    return best;
+  }
+  function onDown(e) {
+    const M = getMapping();
+    const p = M.fromEvent(svg, e);
+    const key = pick(p);
+    if (key) { dragKey = key; e.preventDefault(); }
+  }
+  function onMove(e) {
+    if (!dragKey) return;
+    const M = getMapping();
+    const p = M.fromEvent(svg, e);
+    const t = getTargets().find(t => t.key === dragKey);
+    if (t) t.setPos(p);
+    onUpdate();
+    if (e.touches) e.preventDefault();
+  }
+  function onUp() { dragKey = null; }
+  svg.addEventListener('mousedown', onDown);
+  svg.addEventListener('touchstart', onDown, { passive: false });
+  document.addEventListener('mousemove', onMove);
+  document.addEventListener('touchmove', onMove, { passive: false });
+  document.addEventListener('mouseup', onUp);
+  document.addEventListener('touchend', onUp);
+}
+
+function buildReadout(container, title, rows) {
+  container.innerHTML = '';
+  const h = document.createElement('h3');
+  h.textContent = title;
+  container.appendChild(h);
+  const rowEls = {};
+  for (const r of rows) {
+    const row = document.createElement('div');
+    row.className = 'row';
+    const lbl = document.createElement('span');
+    lbl.className = 'label'; lbl.innerHTML = r.label;
+    const val = document.createElement('span');
+    val.className = 'value'; val.textContent = r.initial ?? '—';
+    row.appendChild(lbl); row.appendChild(val);
+    container.appendChild(row);
+    rowEls[r.id] = val;
+  }
+  return rowEls;
+}
+
+function setVal(el, text, klass) {
+  if (!el) return;
+  el.textContent = text;
+  el.className = 'value' + (klass ? ' ' + klass : '');
+}
+
+function ensureMarkers(svg) {
+  if (svg.querySelector('defs')) return;
+  const defs = el('defs');
+  const make = (id, fill) => {
+    const m = el('marker', {
+      id, viewBox: '0 0 10 10', refX: '9', refY: '5',
+      markerUnits: 'strokeWidth', markerWidth: '6', markerHeight: '6', orient: 'auto'
+    });
+    m.appendChild(el('path', { d: 'M 0 0 L 10 5 L 0 10 z', fill }));
+    return m;
+  };
+  defs.appendChild(make('arrow-red', '#B2182B'));
+  defs.appendChild(make('arrow-green', '#1B7837'));
+  defs.appendChild(make('arrow-orange', '#D95F02'));
+  defs.appendChild(make('arrow-blue', '#12355B'));
+  defs.appendChild(make('arrow-gray', '#888'));
+  svg.appendChild(defs);
+}
+
+// =========================================================================
+// SHARED SHAPE REGISTRY
+// =========================================================================
+//
+// Each shape exposes:
+//   world: {X_MIN,X_MAX,Y_MIN,Y_MAX}    - recommended viewBox
+//   contains(p): bool
+//   project(p): {x,y, ...info}          - closest point in K and shape-specific info
+//   normalCone(w, info): { type:'point'|'ray'|'wedge', dir? n1? n2? }
+//   draw(g, M): void                     - render K itself
+//   initialW, initialZ: {x,y}            - good starting positions for the two tabs
+//   is1D: bool                           - line case (constrains drag to x-axis)
+// =========================================================================
+
+const SHAPES = {};
+
+// --- Shape: real line K = R+, treated honestly as 1D ---
+// Embedded in 2D ONLY so we can display it on a canvas; everything else stays 1D.
+// All positions w, z, projections, and normal cones live on the x-axis (y = 0).
+SHAPES.line = {
+  name: 'line',
+  is1D: true,
+  world: { X_MIN: -2.0, X_MAX: 5.0, Y_MIN: -1.5, Y_MAX: 1.5 },
+  initialW: { x: 1.5, y: 0 },
+  initialZ: { x: -1.0, y: 0 },     // outside K to demonstrate projection
+  contains(p) {
+    // 1D inclusion: only x matters. y must already be ≈ 0 if drag is constrained.
+    return p.x >= -1e-9;
+  },
+  project(p) {
+    // 1D projection: w = max(x, 0). Always lies on the line.
+    const xc = Math.max(p.x, 0);
+    return { x: xc, y: 0, location: (xc > 1e-9) ? 'interior' : 'boundary' };
+  },
+  normalCone(w, info) {
+    // 1D normal cone of R+:
+    //   - interior (w > 0): N = {0}
+    //   - boundary (w = 0): N = (-infty, 0]
+    if (info.location === 'interior') return { type: 'point' };
+    return { type: 'half-ray-left' };
+  },
+  draw(g, M) {
+    // Draw a clean number line. K = R+ in thick blue, R- in thin gray (context only).
+    // Negative half (gray dashed)
+    g.appendChild(el('line', {
+      x1: M.wx(M.X_MIN), y1: M.wy(0),
+      x2: M.wx(0), y2: M.wy(0),
+      stroke: '#aaa', 'stroke-width': '1.5', 'stroke-dasharray': '4,3'
+    }));
+    // K = R+ thick blue
+    g.appendChild(el('line', {
+      x1: M.wx(0), y1: M.wy(0),
+      x2: M.wx(M.X_MAX - 0.1), y2: M.wy(0),
+      stroke: '#12355B', 'stroke-width': '4'
+    }));
+    // Origin tick
+    g.appendChild(el('line', {
+      x1: M.wx(0), y1: M.wy(-0.18),
+      x2: M.wx(0), y2: M.wy(0.18),
+      stroke: '#12355B', 'stroke-width': '2'
+    }));
+    // Tick marks at -1, 1, 2, 3, 4
+    for (let xi = -1; xi <= 4; xi++) {
+      if (xi === 0) continue;
+      g.appendChild(el('line', {
+        x1: M.wx(xi), y1: M.wy(-0.10),
+        x2: M.wx(xi), y2: M.wy(0.10),
+        stroke: '#888', 'stroke-width': '1'
+      }));
+      g.appendChild(el('text', {
+        x: M.wx(xi), y: M.wy(-0.30),
+        'font-size': '12', fill: '#888', 'text-anchor': 'middle'
+      })).textContent = xi;
+    }
+    // Origin label
+    g.appendChild(el('text', {
+      x: M.wx(0), y: M.wy(-0.30),
+      'font-size': '12', fill: '#444', 'text-anchor': 'middle', 'font-weight': 'bold'
+    })).textContent = '0';
+    // K label
+    g.appendChild(el('text', {
+      x: M.wx(M.X_MAX - 0.3), y: M.wy(0.55),
+      'font-size': '17', 'font-style': 'italic', fill: '#12355B', 'text-anchor': 'end'
+    })).textContent = 'K = ℝ₊';
+    // "not in K" annotation on the negative half
+    g.appendChild(el('text', {
+      x: M.wx(M.X_MIN + 0.5), y: M.wy(0.40),
+      'font-size': '11', fill: '#888', 'font-style': 'italic'
+    })).textContent = 'ℝ \\ K';
+  }
+};
+
+// --- Shape: disk centered at origin, radius 1.5 ---
+SHAPES.disk = {
+  name: 'disk', is1D: false,
+  world: { X_MIN: -3.5, X_MAX: 3.5, Y_MIN: -2.5, Y_MAX: 2.5 },
+  initialW: { x: Math.cos(Math.PI/4)*1.5, y: Math.sin(Math.PI/4)*1.5 },     // on boundary at 45°
+  initialZ: { x: 2.4, y: 1.0 },
+  cx: 0, cy: 0, r: 1.5,
+  contains(p) { return Math.hypot(p.x - this.cx, p.y - this.cy) <= this.r + 1e-9; },
+  project(p) {
+    const dx = p.x - this.cx, dy = p.y - this.cy;
+    const d = Math.hypot(dx, dy);
+    if (d < this.r - 1e-6) return { x: p.x, y: p.y, location: 'interior' };
+    if (d <= this.r + 1e-6) {
+      // On boundary (within tolerance)
+      return { x: p.x, y: p.y, location: 'boundary' };
+    }
+    return { x: this.cx + dx/d*this.r, y: this.cy + dy/d*this.r, location: 'boundary' };
+  },
+  normalCone(w, info) {
+    if (info.location === 'interior') return { type: 'point' };
+    const dx = w.x - this.cx, dy = w.y - this.cy;
+    const len = Math.hypot(dx, dy);
+    if (len < 1e-9) return { type: 'point' };
+    return { type: 'ray', dir: { x: dx/len, y: dy/len } };
+  },
+  draw(g, M) {
+    g.appendChild(el('circle', {
+      cx: M.wx(this.cx), cy: M.wy(this.cy), r: this.r * M.SX,
+      fill: '#bcd2e8', 'fill-opacity': '0.6',
+      stroke: '#12355B', 'stroke-width': '2'
+    }));
+    g.appendChild(el('text', {
+      x: M.wx(this.cx - 0.7), y: M.wy(this.cy - 0.7),
+      'font-style': 'italic', 'font-size': '20', fill: '#12355B'
+    })).textContent = 'K';
+    g.appendChild(el('text', {
+      x: M.wx(this.cx - 0.7), y: M.wy(this.cy - 0.7) + 14,
+      'font-size': '12', fill: '#12355B', 'font-style': 'italic'
+    })).textContent = '= {p : ‖p‖ ≤ 1.5}';
+  }
+};
+
+// --- Shape: pentagon with corners ---
+SHAPES.polygon = {
+  name: 'polygon', is1D: false,
+  world: { X_MIN: -3.5, X_MAX: 3.5, Y_MIN: -2.5, Y_MAX: 2.5 },
+  initialW: { x: 0, y: 1.5 },          // at apex vertex (corner case)
+  initialZ: { x: 2.4, y: 1.8 },
+  verts: [
+    { x: -1.6, y: -1.0 }, { x:  1.6, y: -1.0 },
+    { x:  1.8, y:  0.4 }, { x:  0.0, y:  1.5 }, { x: -1.8, y:  0.4 }
+  ],
+  contains(p) {
+    let inside = false;
+    const v = this.verts;
+    for (let i = 0, j = v.length - 1; i < v.length; j = i++) {
+      const xi = v[i].x, yi = v[i].y, xj = v[j].x, yj = v[j].y;
+      const intersect = ((yi > p.y) !== (yj > p.y)) &&
+        (p.x < (xj - xi) * (p.y - yi) / (yj - yi + 1e-12) + xi);
+      if (intersect) inside = !inside;
+    }
+    return inside;
+  },
+  project(p) {
+    // Find nearest boundary feature (edge or vertex)
+    let best = null;
+    const v = this.verts;
+    for (let i = 0; i < v.length; i++) {
+      const a = v[i], b = v[(i+1) % v.length];
+      const dx = b.x - a.x, dy = b.y - a.y;
+      const len2 = dx*dx + dy*dy;
+      let t = ((p.x - a.x)*dx + (p.y - a.y)*dy) / len2;
+      t = Math.max(0, Math.min(1, t));
+      const qx = a.x + t*dx, qy = a.y + t*dy;
+      const d = Math.hypot(p.x - qx, p.y - qy);
+      const vertexIdx = (t < 1e-6) ? i : (t > 1 - 1e-6 ? (i+1) % v.length : -1);
+      if (!best || d < best.d) best = { x: qx, y: qy, d, vertexIdx, edgeIdx: i };
+    }
+    // Strictly interior: distance from boundary > tolerance AND contains
+    if (this.contains(p) && best.d > 1e-5) {
+      return { x: p.x, y: p.y, location: 'interior', vertexIdx: -1 };
+    }
+    // Otherwise on or beyond boundary
+    return { x: best.x, y: best.y, location: 'boundary', vertexIdx: best.vertexIdx, edgeIdx: best.edgeIdx };
+  },
+  edgeNormal(i) {
+    const a = this.verts[i], b = this.verts[(i+1) % this.verts.length];
+    const dx = b.x - a.x, dy = b.y - a.y;
+    const len = Math.hypot(dx, dy);
+    return { x: dy/len, y: -dx/len };
+  },
+  normalCone(w, info) {
+    if (info.location === 'interior') return { type: 'point' };
+    if (info.vertexIdx >= 0) {
+      const v = this.verts;
+      const i = info.vertexIdx;
+      const prev = (i - 1 + v.length) % v.length;
+      const n1 = this.edgeNormal(prev), n2 = this.edgeNormal(i);
+      return { type: 'wedge', n1, n2 };
+    }
+    return { type: 'ray', dir: this.edgeNormal(info.edgeIdx) };
+  },
+  draw(g, M) {
+    const pts = this.verts.map(v => `${M.wx(v.x)},${M.wy(v.y)}`).join(' ');
+    g.appendChild(el('polygon', {
+      points: pts, fill: '#bcd2e8', 'fill-opacity': '0.6',
+      stroke: '#12355B', 'stroke-width': '2'
+    }));
+    g.appendChild(el('text', {
+      x: M.wx(0), y: M.wy(0),
+      'font-style': 'italic', 'font-size': '20', fill: '#12355B', 'text-anchor': 'middle'
+    })).textContent = 'K';
+    g.appendChild(el('text', {
+      x: M.wx(0), y: M.wy(0) + 14,
+      'font-size': '12', fill: '#12355B', 'text-anchor': 'middle', 'font-style': 'italic'
+    })).textContent = '= conv({V₁, …, V₅})';
+  }
+};
+
+// --- Shape: Coulomb cone K_mu (mu = 0.5) ---
+// Coordinates: x = r_t (tangential), y = r_n (normal)
+SHAPES.coulomb = {
+  name: 'coulomb', is1D: false,
+  world: { X_MIN: -3.0, X_MAX: 3.0, Y_MIN: -1.0, Y_MAX: 3.5 },
+  initialW: { x: 0.94, y: 1.88 },   // on the right slanted edge at y=1.88 (matches slide)
+  initialZ: { x: -1.5, y: 2.4 },    // outside the cone, on the left side
+  MU: 0.5,
+  contains(p) {
+    return p.y >= -1e-9 && Math.abs(p.x) <= this.MU * p.y + 1e-9;
+  },
+  project(p) {
+    // Compute distance to nearest cone feature (apex or edges)
+    // First, would-be edge projections:
+    const sR = 1, sL = -1;
+    const dx = sR * this.MU, dy = 1;
+    const dlen2 = dx*dx + dy*dy;
+    const tR = Math.max(0, (p.x*dx + p.y*dy) / dlen2);
+    const xR = tR*dx, yR = tR*dy;
+    const dxR = p.x - xR, dyR = p.y - yR, distR = Math.hypot(dxR, dyR);
+    const dxL = -dx, dyL = dy;
+    const tL = Math.max(0, (p.x*dxL + p.y*dyL) / dlen2);
+    const xL = tL*dxL, yL = tL*dyL;
+    const distL = Math.hypot(p.x - xL, p.y - yL);
+
+    // Apex case: in -K_mu^*
+    const inNegDual = (p.y <= 1e-9) && (Math.abs(p.x) <= -p.y / this.MU + 1e-9);
+
+    // Strict interior: contains AND not near boundary
+    const minBoundaryDist = Math.min(distR, distL, Math.hypot(p.x, p.y));
+    if (this.contains(p) && minBoundaryDist > 1e-5) {
+      return { x: p.x, y: p.y, location: 'interior', edgeSign: 0 };
+    }
+    if (inNegDual) return { x: 0, y: 0, location: 'apex', edgeSign: 0 };
+    // On (or just outside) boundary: pick nearest edge
+    const s = (p.x >= 0) ? 1 : -1;
+    const t = (s === 1) ? tR : tL;
+    return { x: t * s * this.MU, y: t, location: 'edge', edgeSign: s };
+  },
+  normalCone(w, info) {
+    if (info.location === 'interior') return { type: 'point' };
+    if (info.location === 'edge') {
+      const s = info.edgeSign;
+      const len = Math.sqrt(1 + this.MU * this.MU);
+      // outward normal: (s, -mu)/len
+      return { type: 'ray', dir: { x: s/len, y: -this.MU/len } };
+    }
+    // Apex: N_K(0) = -K_μ*.  Correct derivation:
+    //   K_μ* = {w: w_n >= μ|w_t|}, so -K_μ* = {p: p_n <= -μ|p_t|}.
+    //   This is a DOWNWARD-opening cone with right edge p_n = -μ p_t (for p_t > 0),
+    //   direction (1, -μ).  NOT (1, -1/μ) — that earlier value confused
+    //   "slope 1/μ" (run/rise) with the direction's y-component.
+    const len = Math.sqrt(1 + this.MU * this.MU);
+    return {
+      type: 'wedge',
+      n1: { x: -1/len, y: -this.MU/len },   // left ray direction (-1, -μ)
+      n2: { x:  1/len, y: -this.MU/len }    // right ray direction (1, -μ)
+    };
+  },
+  draw(g, M) {
+    // Cone polygon: apex at origin, edges going up-left and up-right to top of canvas
+    const yTop = M.Y_MAX - 0.10;
+    const xR = this.MU * yTop, xL = -xR;
+    g.appendChild(el('polygon', {
+      points: `${M.wx(0)},${M.wy(0)} ${M.wx(xL)},${M.wy(yTop)} ${M.wx(xR)},${M.wy(yTop)}`,
+      fill: '#bcd2e8', 'fill-opacity': '0.55',
+      stroke: '#12355B', 'stroke-width': '2'
+    }));
+    // Reference axes
+    g.appendChild(el('line', {
+      x1: M.wx(M.X_MIN), y1: M.wy(0), x2: M.wx(M.X_MAX), y2: M.wy(0),
+      stroke: '#bbb', 'stroke-width': '1'
+    }));
+    g.appendChild(el('line', {
+      x1: M.wx(0), y1: M.wy(M.Y_MIN), x2: M.wx(0), y2: M.wy(M.Y_MAX),
+      stroke: '#bbb', 'stroke-width': '1'
+    }));
+    // Axis labels (neutral, since this shape now serves as the Lorenz cone in tabs 1 and 2)
+    g.appendChild(el('text', {
+      x: M.wx(M.X_MAX - 0.15), y: M.wy(0) + 16,
+      'font-size': '12', fill: '#777', 'font-style': 'italic'
+    })).textContent = 'x';
+    g.appendChild(el('text', {
+      x: M.wx(0) + 8, y: M.wy(M.Y_MAX - 0.15),
+      'font-size': '12', fill: '#777', 'font-style': 'italic'
+    })).textContent = 'y';
+    // Convex-set label: K is the generic name across all shapes; the parenthetical
+    // gives the set-builder definition so K is unambiguous (matches the convention used
+    // for the line K = ℝ₊ and the half-plane K = {y ≥ 0}).
+    g.appendChild(el('text', {
+      x: M.wx(0), y: M.wy(2.0),
+      'font-size': '20', 'font-style': 'italic', fill: '#12355B', 'text-anchor': 'middle'
+    })).textContent = 'K';
+    g.appendChild(el('text', {
+      x: M.wx(0), y: M.wy(2.0) + 16,
+      'font-size': '12', fill: '#12355B', 'text-anchor': 'middle', 'font-style': 'italic'
+    })).textContent = '= {(x, y) : y ≥ 0.5 |x|}';
+    // Apex
+    g.appendChild(el('circle', { cx: M.wx(0), cy: M.wy(0), r: '3', fill: '#12355B' }));
+    g.appendChild(el('text', {
+      x: M.wx(0.05), y: M.wy(-0.10),
+      'font-size': '11', fill: '#12355B', 'font-style': 'italic'
+    })).textContent = 'apex';
+  }
+};
+
+// --- Shape: half-plane H = {(x, y): y >= 0} ---
+// The 2D embedding of the 1D Signorini constraint. Boundary is a single straight line;
+// the normal cone everywhere on it points down. Interior is {0}. Useful as a
+// "stepping stone" between the 1D real-line and the disk/polygon/Coulomb cones.
+SHAPES.halfplane = {
+  name: 'halfplane', is1D: false,
+  world: { X_MIN: -3.0, X_MAX: 3.0, Y_MIN: -1.5, Y_MAX: 2.5 },
+  initialW: { x: 1.0, y: 0 },       // on the boundary (y = 0)
+  initialZ: { x: 0.5, y: -0.8 },    // below the boundary (outside)
+  contains(p) {
+    return p.y >= -1e-9;
+  },
+  project(p) {
+    if (p.y >= -1e-9) {
+      // Inside; classify by distance to boundary
+      if (p.y > 1e-5) return { x: p.x, y: p.y, location: 'interior' };
+      return { x: p.x, y: 0, location: 'boundary' };
+    }
+    // Below the line: project orthogonally to (p.x, 0)
+    return { x: p.x, y: 0, location: 'boundary' };
+  },
+  normalCone(w, info) {
+    if (info.location === 'interior') return { type: 'point' };
+    // Anywhere on the boundary: outward normal is (0, -1) (downward ray)
+    return { type: 'ray', dir: { x: 0, y: -1 } };
+  },
+  draw(g, M) {
+    // Shaded region y >= 0
+    g.appendChild(el('rect', {
+      x: M.wx(M.X_MIN), y: M.wy(M.Y_MAX),
+      width: M.wx(M.X_MAX) - M.wx(M.X_MIN),
+      height: M.wy(0) - M.wy(M.Y_MAX),
+      fill: '#bcd2e8', 'fill-opacity': '0.55'
+    }));
+    // The boundary line, thick
+    g.appendChild(el('line', {
+      x1: M.wx(M.X_MIN), y1: M.wy(0),
+      x2: M.wx(M.X_MAX), y2: M.wy(0),
+      stroke: '#12355B', 'stroke-width': '2.5'
+    }));
+    // Vertical reference axis (light)
+    g.appendChild(el('line', {
+      x1: M.wx(0), y1: M.wy(M.Y_MIN), x2: M.wx(0), y2: M.wy(M.Y_MAX),
+      stroke: '#bbb', 'stroke-width': '1'
+    }));
+    // Region label
+    g.appendChild(el('text', {
+      x: M.wx(M.X_MAX - 0.15), y: M.wy(M.Y_MAX - 0.30),
+      'font-size': '17', 'font-style': 'italic', fill: '#12355B', 'text-anchor': 'end'
+    })).textContent = 'K = {y ≥ 0}';
+    // Axis labels
+    g.appendChild(el('text', {
+      x: M.wx(M.X_MAX - 0.15), y: M.wy(0) + 16,
+      'font-size': '12', fill: '#777', 'font-style': 'italic'
+    })).textContent = 'x';
+    g.appendChild(el('text', {
+      x: M.wx(0) + 8, y: M.wy(M.Y_MAX - 0.15),
+      'font-size': '12', fill: '#777', 'font-style': 'italic'
+    })).textContent = 'y';
+  }
+};
+
+// =========================================================================
+// SHARED CONE-DRAWING (used by tabs 1 and 2)
+// =========================================================================
+function drawNormalCone(g, M, shape, w, info) {
+  clear(g);
+  const cone = shape.normalCone(w, info);
+  if (cone.type === 'point') {
+    // Interior: cone is just {0}. Show as a small marker AT w with a tiny "0" label.
+    g.appendChild(el('text', {
+      x: M.wx(w.x) + 12, y: M.wy(w.y) - 6,
+      'font-size': '13', 'font-style': 'italic', fill: '#D95F02'
+    })).textContent = 'N_K(w) = {0}';
+    return;
+  }
+  if (cone.type === 'half-ray-left') {
+    // 1D case: at w=0 in K=R+, N is the leftward ray on the x-axis
+    g.appendChild(el('line', {
+      x1: M.wx(0), y1: M.wy(0),
+      x2: M.wx(M.X_MIN + 0.10), y2: M.wy(0),
+      stroke: '#D95F02', 'stroke-width': '5',
+      'stroke-dasharray': '6,3', opacity: '0.85'
+    }));
+    g.appendChild(el('text', {
+      x: M.wx(M.X_MIN + 0.6), y: M.wy(0) - 12,
+      'font-size': '13', 'font-style': 'italic', fill: '#D95F02'
+    })).textContent = 'N_K(w) = (−∞, 0]';
+    return;
+  }
+  if (cone.type === 'ray') {
+    const len = 6;
+    const tipX = w.x + len * cone.dir.x;
+    const tipY = w.y + len * cone.dir.y;
+    g.appendChild(el('line', {
+      x1: M.wx(w.x), y1: M.wy(w.y),
+      x2: M.wx(tipX), y2: M.wy(tipY),
+      stroke: '#D95F02', 'stroke-width': '3',
+      'stroke-dasharray': '6,3', opacity: '0.85'
+    }));
+    g.appendChild(el('text', {
+      x: M.wx(w.x + 1.5*cone.dir.x), y: M.wy(w.y + 1.5*cone.dir.y),
+      'font-size': '14', 'font-style': 'italic', fill: '#D95F02'
+    })).textContent = 'N_K(w)';
+    return;
+  }
+  if (cone.type === 'wedge') {
+    const len = 6;
+    const a1 = Math.atan2(cone.n1.y, cone.n1.x);
+    const a2 = Math.atan2(cone.n2.y, cone.n2.x);
+    let da = a2 - a1;
+    while (da > Math.PI) da -= 2*Math.PI;
+    while (da < -Math.PI) da += 2*Math.PI;
+    const verts = [{ x: w.x, y: w.y }];
+    for (let i = 0; i <= 24; i++) {
+      const a = a1 + (i/24)*da;
+      verts.push({ x: w.x + len*Math.cos(a), y: w.y + len*Math.sin(a) });
+    }
+    const pts = verts.map(v => `${M.wx(v.x)},${M.wy(v.y)}`).join(' ');
+    g.appendChild(el('polygon', {
+      points: pts, fill: '#ffe9b3', 'fill-opacity': '0.6',
+      stroke: '#D95F02', 'stroke-width': '1', 'stroke-dasharray': '3,2'
+    }));
+    const aMid = a1 + da/2;
+    g.appendChild(el('text', {
+      x: M.wx(w.x + 1.8*Math.cos(aMid)), y: M.wy(w.y + 1.8*Math.sin(aMid)),
+      'font-size': '14', 'font-style': 'italic', fill: '#D95F02', 'text-anchor': 'middle'
+    })).textContent = 'N_K(w)';
+  }
+}
+
+// =========================================================================
+// TAB ROUTING (must come before module definitions which reference tabModules)
+// =========================================================================
+const tabs = document.querySelectorAll('#tabbar .tab');
+const panels = {
+  ncone: document.getElementById('panel-ncone'),
+  proj: document.getElementById('panel-proj'),
+  ball: document.getElementById('panel-ball'),
+  slider: document.getElementById('panel-slider'),
+  iterate: document.getElementById('panel-iterate'),
+};
+const tabModules = {};
+
+function activateTab(name) {
+  tabs.forEach(t => t.classList.toggle('active', t.dataset.tab === name));
+  for (const [k, p] of Object.entries(panels)) p.classList.toggle('active', k === name);
+  for (const [k, m] of Object.entries(tabModules)) {
+    if (k === name && m.onActivate) m.onActivate();
+    else if (m.onDeactivate) m.onDeactivate();
+  }
+}
+tabs.forEach(t => t.addEventListener('click', () => {
+  activateTab(t.dataset.tab);
+  // Reflect tab in URL so the chosen state is bookmarkable / shareable
+  if (history.replaceState) history.replaceState(null, '', '#tab=' + t.dataset.tab);
+  else location.hash = 'tab=' + t.dataset.tab;
+}));
+
+// On load (and on hashchange), honor the URL hash so external links can open
+// a specific tab. Format: #tab=ncone | proj | ball | slider | iterate.
+function applyHash() {
+  const m = /#tab=([a-z]+)/.exec(location.hash || '');
+  if (m && panels[m[1]]) activateTab(m[1]);
+}
+window.addEventListener('hashchange', applyHash);
+// Defer initial hash application until module IIFEs have populated tabModules
+window.addEventListener('load', applyHash);
+
+// =========================================================================
+// TAB 1: NORMAL CONE
+// =========================================================================
+(function initNormalConeTab() {
+  const svg = document.getElementById('canvas-ncone');
+  ensureMarkers(svg);
+
+  let shapeName = 'line';
+  let shape = SHAPES[shapeName];
+  let M = makeMapping(700, 500, shape.world.X_MIN, shape.world.X_MAX, shape.world.Y_MIN, shape.world.Y_MAX);
+  let w = { x: shape.initialW.x, y: shape.initialW.y };
+  // Candidate vector v (in same space as w); we render it as an arrow w -> w+v
+  // For 1D shapes, v is a single number stored as v.x (v.y = 0).
+  let vCand = { x: -1.0, y: 0.0 };
+  // Test point y (must lie in K)
+  let yProbe = { x: 0.5, y: 0.5 };  // populated per shape on switch
+  let showAngle = false;
+  let showHalfPlane = false;
+
+  const gShape = el('g'); svg.appendChild(gShape);
+  const gHalfPlane = el('g'); svg.appendChild(gHalfPlane);  // drawn under cone for layering
+  const gCone = el('g'); svg.appendChild(gCone);
+  const gCandidate = el('g'); svg.appendChild(gCandidate);
+  const gProbe = el('g'); svg.appendChild(gProbe);
+  const gPoint = el('g'); svg.appendChild(gPoint);
+  const gLabels = el('g'); svg.appendChild(gLabels);
+
+  // Constrain w to K when dragging. For the line, snap y to 0; for 2D shapes,
+  // project to K so the user can drag anywhere and the point sticks to the boundary.
+  function constrainToK(p) {
+    if (shape.is1D) {
+      return { x: clamp(p.x, 0, M.X_MAX - 0.15), y: 0 };
+    }
+    if (shape.contains(p)) return p;
+    const proj = shape.project(p);
+    return { x: proj.x, y: proj.y };
+  }
+
+  // Constrain y probe to K (same logic as for w in tab 1)
+  function constrainProbeToK(p) {
+    if (shape.is1D) {
+      return { x: clamp(p.x, 0, M.X_MAX - 0.15), y: 0 };
+    }
+    if (shape.contains(p)) return p;
+    const proj = shape.project(p);
+    return { x: proj.x, y: proj.y };
+  }
+
+  // Initialize y probe to a sensible interior position when shape changes
+  function initProbe() {
+    if (shape.is1D) yProbe = { x: 2.5, y: 0 };
+    else if (shape.name === 'disk') yProbe = { x: -0.5, y: 0.3 };
+    else if (shape.name === 'polygon') yProbe = { x: 0.0, y: -0.3 };
+    else if (shape.name === 'coulomb') yProbe = { x: 0.0, y: 1.5 };
+    else if (shape.name === 'halfplane') yProbe = { x: 1.5, y: 0.5 };
+  }
+  function initCandidate() {
+    if (shape.is1D) vCand = { x: -1.0, y: 0 };
+    else if (shape.name === 'disk') vCand = { x: 1.5, y: 0.5 };
+    else if (shape.name === 'polygon') vCand = { x: 0.0, y: 1.5 };
+    else if (shape.name === 'coulomb') vCand = { x: 1.0, y: -0.5 };
+    else if (shape.name === 'halfplane') vCand = { x: 0.5, y: 1.0 };  // wrong direction (up), so the user must figure out the right one
+  }
+  initProbe(); initCandidate();
+
+  const readoutEl = document.getElementById('readout-ncone');
+  let rowEls;
+
+  function rebuildReadout() {
+    const rows = shape.is1D ? [
+      { id: 'nc-w', label: '<em>w</em>' },
+      { id: 'nc-loc', label: 'location' },
+      { id: 'nc-cone', label: '<em>N<sub>K</sub></em>(<em>w</em>)' },
+    ] : [
+      { id: 'nc-w', label: '<em>w</em>' },
+      { id: 'nc-loc', label: 'location' },
+      { id: 'nc-cone', label: '<em>N<sub>K</sub></em>(<em>w</em>) shape' },
+    ];
+    rowEls = buildReadout(readoutEl, 'Live readout', rows);
+    const legend = document.createElement('div');
+    legend.className = 'legend';
+    legend.innerHTML = `
+      <div><span class="swatch" style="background:#bcd2e8;"></span>admissible set <em>K</em></div>
+      <div><span class="swatch" style="background:#ffe9b3;"></span>normal cone <em>N<sub>K</sub></em>(<em>w</em>)</div>
+      <div><span class="swatch" style="background:#12355B; border-radius:50%; width:11px; height:11px;"></span>drag <em>w</em> (stays in <em>K</em>)</div>
+      <div><span class="swatch" style="background:#1B7837; border-radius:50%; width:11px; height:11px;"></span>drag tip of candidate <em>η</em> (when test on)</div>
+      <div><span class="swatch" style="background:#444; border-radius:50%; width:11px; height:11px;"></span>drag probe <em>y</em> ∈ <em>K</em> (angle test only)</div>
+      <div class="hint" style="margin-top:0.5em;">${
+        shape.is1D
+          ? 'Drag <em>w</em> to the origin and watch the cone grow from <em>{0}</em> to the entire negative half-line.'
+          : (shape.name === 'polygon'
+              ? 'Try interior, edge midpoint, and a corner: cone collapses, becomes a ray, then opens into a wedge.'
+              : (shape.name === 'coulomb'
+                  ? 'Three locations to try: deep interior (cone collapses to {0}), on a slanted edge (cone is a single ray), at the apex (cone fans out into the negative dual cone −<em>K</em><sup>*</sup>).'
+                  : (shape.name === 'halfplane'
+                      ? 'A 2D embedding of Signorini: boundary is a single line, normal cone is a single downward ray everywhere on it.'
+                      : 'Drag inside the disk: cone collapses to <em>{0}</em>. Drag to the boundary: cone is a single outward ray.')))
+      }</div>
+      <div class="hint" style="margin-top:0.4em;">
+        The half-plane test <strong>certifies</strong> the universal claim:
+        <em>η</em> ∈ <em>N<sub>K</sub></em>(<em>w</em>) iff the half-plane contains all of <em>K</em>.
+        The angle test only <strong>falsifies</strong>: drag <em>y</em>, and a positive ⟨<em>η</em>, <em>y</em>−<em>w</em>⟩ is a witness to <em>η</em> ∉ <em>N<sub>K</sub></em>(<em>w</em>).
+      </div>
+    `;
+    readoutEl.appendChild(legend);
+  }
+
+  function drawPoint() {
+    clear(gPoint);
+    // Halo
+    gPoint.appendChild(el('circle', {
+      cx: M.wx(w.x), cy: M.wy(w.y), r: '14',
+      fill: '#12355B', 'fill-opacity': '0.15'
+    }));
+    // Solid dot
+    gPoint.appendChild(el('circle', {
+      cx: M.wx(w.x), cy: M.wy(w.y), r: '7',
+      fill: '#12355B', stroke: 'white', 'stroke-width': '2',
+      style: 'cursor: grab;'
+    }));
+  }
+
+  function drawLabels(info) {
+    clear(gLabels);
+    const labelOffsetY = shape.is1D ? 0.30 : 0.20;
+    gLabels.appendChild(el('text', {
+      x: M.wx(w.x) + 12, y: M.wy(w.y) - 10,
+      'font-size': '17', 'font-style': 'italic', 'font-weight': 'bold',
+      fill: '#12355B'
+    })).textContent = 'w';
+    if (shape.is1D) {
+      gLabels.appendChild(el('text', {
+        x: M.wx(w.x), y: M.wy(w.y) + 28,
+        'font-size': '11', fill: '#555', 'text-anchor': 'middle', 'font-family': 'monospace'
+      })).textContent = w.x.toFixed(2);
+    }
+  }
+
+  // Test if v is in N_K(w) for the current shape, using the geometric definition:
+  //   v in N_K(w) iff <v, y - w> <= 0 for all y in K.
+  // For our specific shapes we can test this analytically by checking if v
+  // lies in the precomputed normal cone object.
+  function testVInCone(v, info) {
+    const cone = shape.normalCone(w, info);
+    if (cone.type === 'point') {
+      return Math.hypot(v.x, v.y) < 1e-6;  // only v = 0 passes
+    }
+    if (cone.type === 'half-ray-left') {
+      // v in (-infty, 0] (1D)
+      return v.x <= 1e-6 && Math.abs(v.y) < 1e-6;
+    }
+    if (cone.type === 'ray') {
+      // v parallel to cone.dir with non-negative coefficient
+      const len = Math.hypot(v.x, v.y);
+      if (len < 1e-6) return true;
+      const cos = (v.x * cone.dir.x + v.y * cone.dir.y) / len;
+      return cos > 1 - 1e-3;
+    }
+    if (cone.type === 'wedge') {
+      // v in the convex cone spanned by n1 and n2 (both unit)
+      const D = cone.n1.x * cone.n2.y - cone.n1.y * cone.n2.x;
+      if (Math.abs(D) < 1e-9) return false;
+      const a = (v.x * cone.n2.y - v.y * cone.n2.x) / D;
+      const b = (cone.n1.x * v.y - cone.n1.y * v.x) / D;
+      return a >= -1e-6 && b >= -1e-6;
+    }
+    return false;
+  }
+
+  // Draw the candidate vector v as an arrow from w to w+v
+  function drawCandidate(info) {
+    clear(gCandidate);
+    if (!showAngle && !showHalfPlane) return;
+    const tip = { x: w.x + vCand.x, y: w.y + vCand.y };
+    const len = Math.hypot(vCand.x, vCand.y);
+    if (len < 1e-3) return;
+    const passes = testVInCone(vCand, info);
+    const color = passes ? '#1B7837' : '#B2182B';
+    const shrink = 0.18 / Math.max(len, 0.18);
+    gCandidate.appendChild(el('line', {
+      x1: M.wx(w.x), y1: M.wy(w.y),
+      x2: M.wx(tip.x - vCand.x*shrink), y2: M.wy(tip.y - vCand.y*shrink),
+      stroke: color, 'stroke-width': '2.5',
+      'marker-end': passes ? 'url(#arrow-green)' : 'url(#arrow-red)'
+    }));
+    gCandidate.appendChild(el('circle', {
+      cx: M.wx(tip.x), cy: M.wy(tip.y), r: '11',
+      fill: color, 'fill-opacity': '0.18'
+    }));
+    gCandidate.appendChild(el('circle', {
+      cx: M.wx(tip.x), cy: M.wy(tip.y), r: '6',
+      fill: color, stroke: 'white', 'stroke-width': '1.5',
+      style: 'cursor: grab;'
+    }));
+    const mx = w.x + vCand.x*0.55, my = w.y + vCand.y*0.55;
+    const ox = -vCand.y/len * 0.15, oy = vCand.x/len * 0.15;
+    gCandidate.appendChild(el('text', {
+      x: M.wx(mx + ox), y: M.wy(my + oy),
+      'font-style': 'italic', 'font-size': '15', 'font-weight': 'bold',
+      fill: color, 'text-anchor': 'middle'
+    })).textContent = 'η';
+    gCandidate.appendChild(el('text', {
+      x: M.wx(M.X_MIN + 0.2), y: M.wy(M.Y_MAX - 0.2),
+      'font-size': '13', fill: color, 'font-family': 'monospace'
+    })).textContent = passes ? 'η ∈ N_K(w)  ✓' : 'η ∉ N_K(w)  ✗';
+  }
+
+  function drawProbe() {
+    clear(gProbe);
+    if (!showAngle) return;
+    const yp = yProbe;
+    gProbe.appendChild(el('line', {
+      x1: M.wx(w.x), y1: M.wy(w.y),
+      x2: M.wx(yp.x), y2: M.wy(yp.y),
+      stroke: '#888', 'stroke-width': '1.5', 'stroke-dasharray': '4,3'
+    }));
+    gProbe.appendChild(el('circle', {
+      cx: M.wx(yp.x), cy: M.wy(yp.y), r: '11',
+      fill: '#444', 'fill-opacity': '0.13'
+    }));
+    gProbe.appendChild(el('circle', {
+      cx: M.wx(yp.x), cy: M.wy(yp.y), r: '6',
+      fill: '#444', stroke: 'white', 'stroke-width': '1.5',
+      style: 'cursor: grab;'
+    }));
+    gProbe.appendChild(el('text', {
+      x: M.wx(yp.x + 0.16), y: M.wy(yp.y + 0.16),
+      'font-size': '15', 'font-style': 'italic', 'font-weight': 'bold',
+      fill: '#444'
+    })).textContent = 'y';
+    const dot = vCand.x * (yp.x - w.x) + vCand.y * (yp.y - w.y);
+    // The angle test is a SAMPLE: this y satisfies (or violates) the inequality.
+    // A positive value DISPROVES η ∈ N_K(w) — that is decisive.
+    // A non-positive value is CONSISTENT but NOT sufficient (must hold for all y).
+    let txt, col;
+    if (dot > 1e-6) {
+      txt = `〈η, y−w〉 = ${dot.toFixed(2)}  > 0  ✗ (witness: η ∉ N_K(w))`;
+      col = '#B2182B';
+    } else {
+      txt = `〈η, y−w〉 = ${dot.toFixed(2)}  ≤ 0  (consistent — drag y to falsify)`;
+      col = '#666';
+    }
+    gProbe.appendChild(el('text', {
+      x: M.wx(M.X_MIN + 0.2), y: M.wy(M.Y_MAX - 0.55),
+      'font-size': '13', fill: col, 'font-family': 'monospace'
+    })).textContent = txt;
+  }
+
+  function drawHalfPlane(info) {
+    clear(gHalfPlane);
+    if (!showHalfPlane) return;
+    const len = Math.hypot(vCand.x, vCand.y);
+    if (len < 1e-6) return;
+    const passes = testVInCone(vCand, info);
+    const fillColor = passes ? '#cfe5cf' : '#f7d4d4';
+    const strokeColor = passes ? '#1B7837' : '#B2182B';
+    if (shape.is1D) {
+      const xLeft = vCand.x > 0 ? M.X_MIN : w.x;
+      const xRight = vCand.x > 0 ? w.x : M.X_MAX;
+      gHalfPlane.appendChild(el('rect', {
+        x: M.wx(xLeft), y: M.wy(0.4),
+        width: M.wx(xRight) - M.wx(xLeft),
+        height: M.wy(-0.4) - M.wy(0.4),
+        fill: fillColor, 'fill-opacity': '0.30'
+      }));
+      gHalfPlane.appendChild(el('line', {
+        x1: M.wx(w.x), y1: M.wy(0.4),
+        x2: M.wx(w.x), y2: M.wy(-0.4),
+        stroke: strokeColor, 'stroke-width': '1.5', 'stroke-dasharray': '4,3'
+      }));
+    } else {
+      const nx = vCand.x / len, ny = vCand.y / len;
+      const corners = [
+        { x: M.X_MIN, y: M.Y_MIN }, { x: M.X_MAX, y: M.Y_MIN },
+        { x: M.X_MAX, y: M.Y_MAX }, { x: M.X_MIN, y: M.Y_MAX }
+      ];
+      const inside = (p) => (p.x - w.x) * nx + (p.y - w.y) * ny <= 0;
+      const intersectEdge = (a, b) => {
+        const da = (a.x - w.x) * nx + (a.y - w.y) * ny;
+        const db = (b.x - w.x) * nx + (b.y - w.y) * ny;
+        const t = da / (da - db);
+        return { x: a.x + t * (b.x - a.x), y: a.y + t * (b.y - a.y) };
+      };
+      let outPoly = [];
+      for (let i = 0; i < corners.length; i++) {
+        const A = corners[i], B = corners[(i+1) % corners.length];
+        const aIn = inside(A), bIn = inside(B);
+        if (aIn) {
+          outPoly.push(A);
+          if (!bIn) outPoly.push(intersectEdge(A, B));
+        } else if (bIn) {
+          outPoly.push(intersectEdge(A, B));
+        }
+      }
+      if (outPoly.length >= 3) {
+        const pts = outPoly.map(p => `${M.wx(p.x)},${M.wy(p.y)}`).join(' ');
+        gHalfPlane.appendChild(el('polygon', {
+          points: pts,
+          fill: fillColor, 'fill-opacity': '0.20',
+          stroke: strokeColor, 'stroke-width': '1', 'stroke-dasharray': '4,3'
+        }));
+      }
+      // Boundary line perpendicular to v through w
+      const tx = -ny, ty = nx;
+      const tBounds = [];
+      const edges = [['x', M.X_MIN], ['x', M.X_MAX], ['y', M.Y_MIN], ['y', M.Y_MAX]];
+      for (const [axis, val] of edges) {
+        const wd = axis === 'x' ? tx : ty;
+        if (Math.abs(wd) < 1e-9) continue;
+        const s = (val - (axis === 'x' ? w.x : w.y)) / wd;
+        const px = w.x + s*tx, py = w.y + s*ty;
+        if (px >= M.X_MIN - 1e-6 && px <= M.X_MAX + 1e-6 &&
+            py >= M.Y_MIN - 1e-6 && py <= M.Y_MAX + 1e-6) {
+          tBounds.push(s);
+        }
+      }
+      tBounds.sort((a,b) => a-b);
+      if (tBounds.length >= 2) {
+        const s1 = tBounds[0], s2 = tBounds[tBounds.length-1];
+        gHalfPlane.appendChild(el('line', {
+          x1: M.wx(w.x + s1*tx), y1: M.wy(w.y + s1*ty),
+          x2: M.wx(w.x + s2*tx), y2: M.wy(w.y + s2*ty),
+          stroke: strokeColor, 'stroke-width': '1.5', 'stroke-dasharray': '4,3'
+        }));
+      }
+    }
+    const cap = el('text', {
+      x: M.wx(M.X_MAX - 0.2), y: M.wy(M.Y_MAX - 0.55),
+      'font-size': '13', 'font-family': 'monospace',
+      fill: passes ? '#1B7837' : '#B2182B',
+      'text-anchor': 'end'
+    });
+    cap.textContent = passes
+      ? 'half-plane contains K  ✓'
+      : 'half-plane misses K  ✗';
+    gHalfPlane.appendChild(cap);
+  }
+
+  function render() {
+    clear(gShape); shape.draw(gShape, M);
+    const info = shape.is1D
+      ? (Math.abs(w.x) < 1e-6 ? { location: 'boundary' } : { location: 'interior' })
+      : shape.project(w);
+    drawHalfPlane(info);
+    drawNormalCone(gCone, M, shape, w, info);
+    drawCandidate(info);
+    drawProbe();
+    drawPoint();
+    drawLabels(info);
+
+    setVal(rowEls['nc-w'], shape.is1D ? w.x.toFixed(3) : `(${w.x.toFixed(2)}, ${w.y.toFixed(2)})`);
+    if (shape.is1D) {
+      setVal(rowEls['nc-loc'], info.location === 'interior' ? 'interior (w > 0)' : 'boundary (w = 0)',
+        info.location === 'interior' ? 'in-cone' : 'outside');
+      setVal(rowEls['nc-cone'], info.location === 'interior' ? '{0}' : '(−∞, 0]',
+        info.location === 'interior' ? 'zero' : 'in-cone');
+    } else {
+      let locText = info.location;
+      if (info.vertexIdx >= 0) locText = 'vertex (corner)';
+      else if (info.location === 'edge') locText = 'edge (sliding)';
+      else if (info.location === 'apex') locText = 'apex (take-off)';
+      setVal(rowEls['nc-loc'], locText, info.location === 'interior' ? 'in-cone' : 'in-cone');
+      const c = shape.normalCone(w, info);
+      setVal(rowEls['nc-cone'],
+        c.type === 'point' ? '{0}' :
+        c.type === 'ray' ? 'single ray' :
+        c.type === 'wedge' ? 'wedge' : '—',
+        c.type === 'point' ? 'zero' : 'in-cone');
+    }
+  }
+
+  // Drag system: w always; v candidate when angle or half-plane test on; y probe when angle test on.
+  // The candidate v is dragged by its tip (we move tip = w + v, then v = tip - w).
+  makeDragSystem(svg, () => M, () => [
+    { key: 'w',
+      getPos: () => w,
+      setPos: (p) => { const c = constrainToK(p); w.x = c.x; w.y = c.y; },
+      hitRadius: 0.5
+    },
+    { key: 'v',
+      getPos: () => ({ x: w.x + vCand.x, y: w.y + vCand.y }),
+      setPos: (p) => {
+        // For 1D shapes, snap tip to the line (y = 0)
+        const tipX = clamp(p.x, M.X_MIN + 0.1, M.X_MAX - 0.1);
+        const tipY = shape.is1D ? 0 : clamp(p.y, M.Y_MIN + 0.1, M.Y_MAX - 0.1);
+        vCand.x = tipX - w.x;
+        vCand.y = tipY - w.y;
+      },
+      hitRadius: 0.4,
+      disabled: () => !showAngle && !showHalfPlane
+    },
+    { key: 'y',
+      getPos: () => yProbe,
+      setPos: (p) => {
+        const c = constrainProbeToK(p);
+        yProbe.x = c.x; yProbe.y = c.y;
+      },
+      hitRadius: 0.4,
+      disabled: () => !showAngle
+    }
+  ], render);
+
+  // Toggles
+  document.getElementById('ncone-angle').addEventListener('change', e => {
+    showAngle = e.target.checked;
+    render();
+  });
+  document.getElementById('ncone-halfplane').addEventListener('change', e => {
+    showHalfPlane = e.target.checked;
+    render();
+  });
+
+  // Shape-switcher buttons
+  document.querySelectorAll('button.cbtn[data-tab="ncone"]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      shapeName = btn.dataset.shape;
+      shape = SHAPES[shapeName];
+      M = makeMapping(700, 500, shape.world.X_MIN, shape.world.X_MAX, shape.world.Y_MIN, shape.world.Y_MAX);
+      svg.setAttribute('viewBox', `0 0 ${M.W} ${M.H}`);
+      w = { x: shape.initialW.x, y: shape.initialW.y };
+      initProbe();
+      initCandidate();
+      document.querySelectorAll('button.cbtn[data-tab="ncone"]').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      rebuildReadout();
+      render();
+    });
+  });
+
+  rebuildReadout();
+  tabModules.ncone = { render };
+  render();
+})();
+
+// =========================================================================
+// TAB 2: PROJECTION
+// =========================================================================
+(function initProjectionTab() {
+  const svg = document.getElementById('canvas-proj');
+  ensureMarkers(svg);
+
+  let shapeName = 'line';
+  let shape = SHAPES[shapeName];
+  let M = makeMapping(700, 500, shape.world.X_MIN, shape.world.X_MAX, shape.world.Y_MIN, shape.world.Y_MAX);
+  let z = { x: shape.initialZ.x, y: shape.initialZ.y };
+  let yTest = { x: -0.6, y: -0.4 };
+  let showCone = true;
+  let showAngle = false;
+  let showShift = false;
+
+  const gShape = el('g'); svg.appendChild(gShape);
+  const gCone = el('g'); svg.appendChild(gCone);
+  const gShift = el('g'); svg.appendChild(gShift);
+  const gAngle = el('g'); svg.appendChild(gAngle);
+  const gResid = el('g'); svg.appendChild(gResid);
+  const gPoints = el('g'); svg.appendChild(gPoints);
+  const gLabels = el('g'); svg.appendChild(gLabels);
+
+  function constrainZ(p) {
+    if (shape.is1D) {
+      // 1D shape (line): z lives on the same axis as K, just possibly negative
+      return { x: clamp(p.x, M.X_MIN + 0.1, M.X_MAX - 0.1), y: 0 };
+    }
+    return {
+      x: clamp(p.x, M.X_MIN + 0.1, M.X_MAX - 0.1),
+      y: clamp(p.y, M.Y_MIN + 0.1, M.Y_MAX - 0.1)
+    };
+  }
+
+  function drawResidual(w) {
+    clear(gResid);
+    if (shape.contains(z)) return;
+    const dx = z.x - w.x, dy = z.y - w.y;
+    const len = Math.hypot(dx, dy);
+    if (len < 1e-3) return;
+    const shrink = 0.10 / Math.max(len, 0.10);
+    gResid.appendChild(el('line', {
+      x1: M.wx(w.x), y1: M.wy(w.y),
+      x2: M.wx(z.x - dx*shrink), y2: M.wy(z.y - dy*shrink),
+      stroke: '#B2182B', 'stroke-width': '2.5',
+      'marker-end': 'url(#arrow-red)'
+    }));
+  }
+
+  function drawAngleTest(w) {
+    clear(gAngle);
+    if (!showAngle) return;
+    if (shape.is1D) return;  // angle test for 2D shapes only
+    const yp = yTest;
+    const yInK = shape.contains(yp);
+    gAngle.appendChild(el('line', {
+      x1: M.wx(w.x), y1: M.wy(w.y),
+      x2: M.wx(yp.x), y2: M.wy(yp.y),
+      stroke: '#888', 'stroke-width': '1.5'
+    }));
+    gAngle.appendChild(el('circle', {
+      cx: M.wx(yp.x), cy: M.wy(yp.y), r: '12',
+      fill: '#444', 'fill-opacity': '0.13'
+    }));
+    gAngle.appendChild(el('circle', {
+      cx: M.wx(yp.x), cy: M.wy(yp.y), r: '6',
+      fill: yInK ? '#444' : '#B2182B',
+      stroke: 'white', 'stroke-width': '1.5'
+    }));
+    gAngle.appendChild(el('text', {
+      x: M.wx(yp.x + 0.16), y: M.wy(yp.y + 0.16),
+      'font-size': '16', 'font-style': 'italic', 'font-weight': 'bold',
+      fill: yInK ? '#444' : '#B2182B'
+    })).textContent = 'y';
+    if (!yInK) {
+      gAngle.appendChild(el('text', {
+        x: M.wx(yp.x + 0.16), y: M.wy(yp.y - 0.08),
+        'font-size': '11', 'font-style': 'italic', fill: '#B2182B'
+      })).textContent = '(y ∉ K)';
+    }
+    const dxw = z.x - w.x, dyw = z.y - w.y;
+    const dxy = yp.x - w.x, dyy = yp.y - w.y;
+    const dot = dxw*dxy + dyw*dyy;
+    const passes = dot <= 1e-6;
+    gAngle.appendChild(el('text', {
+      x: M.wx(M.X_MIN + 0.3), y: M.wy(M.Y_MAX - 0.2),
+      'font-size': '14', fill: passes ? '#1B7837' : '#B2182B',
+      'font-family': 'monospace'
+    })).textContent = `〈z−w, y−w〉 = ${dot.toFixed(2)}  ${passes ? '≤ 0  ✓' : '> 0  ✗'}`;
+  }
+
+  // De Saxce shift demonstration — only meaningful for Coulomb.
+  // Matches slide convention: r on left edge of cone, -v horizontal (dashed orange),
+  // -mu*|v_t| vertical drop (red), -vTilde from r to corrected endpoint (green).
+  function drawShiftDemo(w, info) {
+    clear(gShift);
+    if (!showShift) return;
+    if (shape.name !== 'coulomb') return;
+    if (info.location !== 'edge') return;
+    const MU = shape.MU;
+    const s = info.edgeSign;
+    // For visualization, fix |v_t| = 0.9. v_t direction: same sign as edge tangent's r_t component
+    // The block is sliding; v points along the tangential direction outward from the contact.
+    // Convention from slide: r on LEFT edge → v_t is to the LEFT (negative r_t) → -v points RIGHT (positive r_t).
+    // For our right-edge case (s=+1): v_t to the RIGHT → -v points LEFT.
+    // To match the slide style (oblique normal in upper-left for r on left edge),
+    // place r on the LEFT edge by default; but here we honor the user's drag.
+    const vtMag = 0.9;
+    // -v: horizontal arrow from w, pointing AWAY from the slip direction.
+    // For right edge (s=+1), slip is in +r_t direction, so -v points in -r_t direction.
+    const minusV = { x: -s * vtMag, y: 0 };
+    const tipV = { x: w.x + minusV.x, y: w.y + minusV.y };
+    // Vertical drop of -mu*|v_t|: red arrow from tipV down by mu*|v_t|
+    const drop = MU * vtMag;
+    const tipShifted = { x: tipV.x, y: tipV.y - drop };
+    // -vTilde: green arrow from w to tipShifted
+    // Draw -v (dashed orange) from w to tipV
+    gShift.appendChild(el('line', {
+      x1: M.wx(w.x), y1: M.wy(w.y),
+      x2: M.wx(tipV.x), y2: M.wy(tipV.y),
+      stroke: '#D95F02', 'stroke-width': '2',
+      'stroke-dasharray': '5,3',
+      'marker-end': 'url(#arrow-orange)'
+    }));
+    gShift.appendChild(el('text', {
+      x: M.wx((w.x + tipV.x)/2), y: M.wy((w.y + tipV.y)/2 + 0.12),
+      'font-size': '13', fill: '#D95F02', 'font-style': 'italic', 'text-anchor': 'middle'
+    })).textContent = '−v';
+    // Drop -mu*|v_t| (red arrow) from tipV downward
+    gShift.appendChild(el('line', {
+      x1: M.wx(tipV.x), y1: M.wy(tipV.y),
+      x2: M.wx(tipShifted.x), y2: M.wy(tipShifted.y),
+      stroke: '#B2182B', 'stroke-width': '2',
+      'marker-end': 'url(#arrow-red)'
+    }));
+    gShift.appendChild(el('text', {
+      x: M.wx(tipV.x) + (s>0 ? -8 : 12), y: M.wy(tipV.y - drop/2) + 4,
+      'font-size': '12', fill: '#B2182B', 'font-style': 'italic',
+      'text-anchor': s > 0 ? 'end' : 'start'
+    })).textContent = '−μ|v_t|';
+    // -vTilde (green arrow) from w to tipShifted
+    gShift.appendChild(el('line', {
+      x1: M.wx(w.x), y1: M.wy(w.y),
+      x2: M.wx(tipShifted.x), y2: M.wy(tipShifted.y),
+      stroke: '#1B7837', 'stroke-width': '2.5',
+      'marker-end': 'url(#arrow-green)'
+    }));
+    gShift.appendChild(el('text', {
+      x: M.wx((w.x + tipShifted.x)/2 + (s>0 ? 0.1 : -0.1)),
+      y: M.wy((w.y + tipShifted.y)/2 - 0.1),
+      'font-size': '13', fill: '#1B7837', 'font-style': 'italic'
+    })).textContent = '−ṽ';
+  }
+
+  function drawPoints(w) {
+    clear(gPoints);
+    // w (closest point) — small green dot, only when z ∉ K
+    if (!shape.contains(z)) {
+      gPoints.appendChild(el('circle', {
+        cx: M.wx(w.x), cy: M.wy(w.y), r: '5',
+        fill: '#1B7837', stroke: 'white', 'stroke-width': '1.5'
+      }));
+    }
+    // z (draggable)
+    gPoints.appendChild(el('circle', {
+      cx: M.wx(z.x), cy: M.wy(z.y), r: '14',
+      fill: '#12355B', 'fill-opacity': '0.15'
+    }));
+    gPoints.appendChild(el('circle', {
+      cx: M.wx(z.x), cy: M.wy(z.y), r: '7',
+      fill: '#12355B', stroke: 'white', 'stroke-width': '2',
+      style: 'cursor: grab;'
+    }));
+  }
+
+  function drawLabels(w) {
+    clear(gLabels);
+    gLabels.appendChild(el('text', {
+      x: M.wx(z.x + 0.15), y: M.wy(z.y + 0.18),
+      'font-style': 'italic', 'font-size': '17', 'font-weight': 'bold',
+      fill: '#12355B'
+    })).textContent = 'z';
+    if (!shape.contains(z)) {
+      let lx, ly;
+      if (shape.name === 'disk') {
+        const dx = w.x - shape.cx, dy = w.y - shape.cy;
+        const len = Math.hypot(dx, dy) + 1e-9;
+        lx = w.x - 0.30*dx/len; ly = w.y - 0.30*dy/len;
+      } else if (shape.is1D) {
+        lx = w.x + 0.05; ly = w.y - 0.30;
+      } else {
+        lx = w.x + 0.15; ly = w.y + 0.20;
+      }
+      gLabels.appendChild(el('text', {
+        x: M.wx(lx), y: M.wy(ly),
+        'font-style': 'italic', 'font-size': '17', 'font-weight': 'bold',
+        fill: '#1B7837'
+      })).textContent = 'w';
+      // residual label (mid-arrow)
+      const mx = 0.5*(w.x + z.x), my = 0.5*(w.y + z.y);
+      const dx = z.x - w.x, dy = z.y - w.y;
+      const len = Math.hypot(dx, dy);
+      if (len > 0.5) {
+        const ox = -dy/len * 0.18, oy = dx/len * 0.18;
+        gLabels.appendChild(el('text', {
+          x: M.wx(mx + ox), y: M.wy(my + oy),
+          'font-style': 'italic', 'font-size': '13', fill: '#B2182B', 'text-anchor': 'middle'
+        })).textContent = 'z − w';
+      }
+    }
+  }
+
+  // Readout
+  const readoutEl = document.getElementById('readout-proj');
+  let rowEls;
+  function rebuildReadout() {
+    rowEls = buildReadout(readoutEl, 'Live readout', [
+      { id: 'p-z', label: '<em>z</em>' },
+      { id: 'p-w', label: '<em>w</em> = proj<sub>K</sub>(<em>z</em>)' },
+      { id: 'p-r', label: 'residual <em>z</em>−<em>w</em>' },
+      { id: 'p-d', label: '|<em>z</em>−<em>w</em>|' },
+      { id: 'p-test', label: 'in <em>N<sub>K</sub></em>(<em>w</em>)?' },
+    ]);
+    const legend = document.createElement('div');
+    legend.className = 'legend';
+    legend.innerHTML = `
+      <div><span class="swatch" style="background:#bcd2e8;"></span>admissible set <em>K</em></div>
+      <div><span class="swatch" style="background:#ffe9b3;"></span>normal cone <em>N<sub>K</sub></em>(<em>w</em>)</div>
+      <div><span class="swatch" style="background:#B2182B;"></span>residual <em>z</em>−<em>w</em></div>
+      <div><span class="swatch" style="background:#12355B; border-radius:50%; width:11px; height:11px;"></span>drag <em>z</em></div>
+      ${shape.is1D ? '' : '<div><span class="swatch" style="background:#444; border-radius:50%; width:11px; height:11px;"></span>drag <em>y</em> (when angle test on)</div>'}
+      <div class="hint" style="margin-top:0.5em;">${
+        shape.is1D ? 'Drag <em>z</em> above or below the line — the closest point on ℝ<sub>+</sub> updates.'
+        : shape.name === 'coulomb' ? 'Drag <em>z</em> across the Lorenz cone boundary; the De Saxcé shift demo shows the friction-cone correction trick that this geometry underpins.'
+        : shape.name === 'halfplane' ? 'A 2D embedding of Signorini: drag <em>z</em> below the boundary line — projection drops it straight up to the line.'
+        : shape.name === 'polygon' ? 'Try the polygon: drag <em>z</em> near a corner — the cone is a wedge, the residual sits inside it (no longer a single perpendicular).'
+        : 'Drag <em>z</em> outside the disk — the closest point sits on the boundary, residual along the outward radial direction.'
+      }</div>
+    `;
+    readoutEl.appendChild(legend);
+  }
+
+  function render() {
+    clear(gShape); shape.draw(gShape, M);
+    const info = shape.project(z);
+    const w = { x: info.x, y: info.y };
+    if (showCone && !shape.contains(z)) {
+      drawNormalCone(gCone, M, shape, w, info);
+    } else {
+      clear(gCone);
+    }
+    drawShiftDemo(w, info);
+    drawAngleTest(w);
+    drawResidual(w);
+    drawPoints(w);
+    drawLabels(w);
+
+    setVal(rowEls['p-z'],
+      shape.is1D ? `(${z.x.toFixed(2)}, ${z.y.toFixed(2)})` : `(${z.x.toFixed(2)}, ${z.y.toFixed(2)})`);
+    setVal(rowEls['p-w'], `(${w.x.toFixed(2)}, ${w.y.toFixed(2)})`);
+    const r = { x: z.x - w.x, y: z.y - w.y };
+    setVal(rowEls['p-r'], `(${r.x.toFixed(2)}, ${r.y.toFixed(2)})`);
+    setVal(rowEls['p-d'], Math.hypot(r.x, r.y).toFixed(2));
+    if (shape.contains(z)) setVal(rowEls['p-test'], 'z ∈ K (residual = 0)', 'zero');
+    else setVal(rowEls['p-test'], '✓ yes', 'in-cone');
+  }
+
+  // Drag system
+  makeDragSystem(svg, () => M, () => [
+    { key: 'z', getPos: () => z, setPos: (p) => { const c = constrainZ(p); z.x = c.x; z.y = c.y; }, hitRadius: 0.4 },
+    { key: 'y',
+      getPos: () => yTest,
+      setPos: (p) => {
+        // Constrain y to K: if drag goes outside, project to nearest point in K.
+        if (shape.contains(p)) {
+          yTest.x = p.x; yTest.y = p.y;
+        } else {
+          const proj = shape.project(p);
+          yTest.x = proj.x; yTest.y = proj.y;
+        }
+      },
+      hitRadius: 0.35, disabled: () => !showAngle || shape.is1D },
+  ], render);
+
+  // Shape-switcher buttons
+  document.querySelectorAll('button.cbtn[data-tab="proj"]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      shapeName = btn.dataset.shape;
+      shape = SHAPES[shapeName];
+      M = makeMapping(700, 500, shape.world.X_MIN, shape.world.X_MAX, shape.world.Y_MIN, shape.world.Y_MAX);
+      svg.setAttribute('viewBox', `0 0 ${M.W} ${M.H}`);
+      z = { x: shape.initialZ.x, y: shape.initialZ.y };
+      yTest = { x: -0.6, y: -0.4 };
+      document.querySelectorAll('button.cbtn[data-tab="proj"]').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      rebuildReadout();
+      render();
+    });
+  });
+
+  // Toggles
+  document.getElementById('proj-cone').addEventListener('change', e => { showCone = e.target.checked; render(); });
+  document.getElementById('proj-angle').addEventListener('change', e => { showAngle = e.target.checked; render(); });
+  document.getElementById('proj-shift').addEventListener('change', e => { showShift = e.target.checked; render(); });
+
+  rebuildReadout();
+  tabModules.proj = { render };
+  render();
+})();
+
+// =========================================================================
+// TAB 3: Bouncing ball (physics)
+// =========================================================================
+(function initBall() {
+  const svg = document.getElementById('canvas-ball');
+  ensureMarkers(svg);
+  const M = makeMapping(700, 360, -1, 1, -0.4, 4.5);
+
+  let m = 1, gG = 9.81, h = 0.005;
+  const restitution = 1;  // elastic; no restitution discussed in lecture
+  let q = 4.0, v = 0.0, r = 0.0, tStep = 0;
+
+  const history = makeHistoryChart(document.getElementById('history-ball'), {
+    W: 1000, H: 220, window: 600,
+    yLabel: 'q, v, r',
+    traces: [
+      { key: 'q', label: 'gap <em>q</em>', color: '#12355B' },
+      { key: 'v', label: 'velocity <em>v</em>', color: '#1B7837' },
+      { key: 'r', label: 'reaction <em>r</em>', color: '#B2182B' },
+    ]
+  });
+
+  const gFloor = el('g'); svg.appendChild(gFloor);
+  const gBall = el('g'); svg.appendChild(gBall);
+  const gArrows = el('g'); svg.appendChild(gArrows);
+
+  function drawFloor() {
+    clear(gFloor);
+    gFloor.appendChild(el('rect', {
+      x: M.wx(M.X_MIN), y: M.wy(0),
+      width: M.wx(M.X_MAX) - M.wx(M.X_MIN),
+      height: M.wy(M.Y_MIN) - M.wy(0),
+      fill: '#e8e8e8'
+    }));
+    gFloor.appendChild(el('line', {
+      x1: M.wx(M.X_MIN), y1: M.wy(0),
+      x2: M.wx(M.X_MAX), y2: M.wy(0),
+      stroke: '#444', 'stroke-width': '2'
+    }));
+    for (let x = M.X_MIN; x < M.X_MAX; x += 0.15) {
+      gFloor.appendChild(el('line', {
+        x1: M.wx(x), y1: M.wy(0),
+        x2: M.wx(x + 0.10), y2: M.wy(-0.15),
+        stroke: '#888', 'stroke-width': '1'
+      }));
+    }
+    gFloor.appendChild(el('line', {
+      x1: M.wx(-0.95), y1: M.wy(0),
+      x2: M.wx(-0.95), y2: M.wy(M.Y_MAX - 0.1),
+      stroke: '#bbb', 'stroke-width': '1'
+    }));
+    for (let yy = 1; yy <= 4; yy++) {
+      gFloor.appendChild(el('line', {
+        x1: M.wx(-0.92), y1: M.wy(yy),
+        x2: M.wx(-0.98), y2: M.wy(yy),
+        stroke: '#888', 'stroke-width': '1'
+      }));
+      gFloor.appendChild(el('text', {
+        x: M.wx(-1) - 2, y: M.wy(yy) + 4,
+        'font-size': '10', fill: '#777', 'text-anchor': 'end'
+      })).textContent = yy;
+    }
+  }
+
+  function drawBall() {
+    clear(gBall);
+    gBall.appendChild(el('circle', {
+      cx: M.wx(0), cy: M.wy(q + 0.12), r: '14',
+      fill: '#12355B', stroke: 'white', 'stroke-width': '2'
+    }));
+    gBall.appendChild(el('text', {
+      x: M.wx(0.20), y: M.wy(q + 0.20),
+      'font-size': '12', fill: '#12355B', 'font-style': 'italic'
+    })).textContent = `q = ${q.toFixed(3)}`;
+  }
+
+  function drawArrows() {
+    clear(gArrows);
+    if (Math.abs(v) > 0.05) {
+      const dy = clamp(v * 0.05, -0.6, 0.6);
+      gArrows.appendChild(el('line', {
+        x1: M.wx(0.30), y1: M.wy(q + 0.12),
+        x2: M.wx(0.30), y2: M.wy(q + 0.12 + dy),
+        stroke: '#1B7837', 'stroke-width': '2',
+        'marker-end': 'url(#arrow-green)'
+      }));
+      gArrows.appendChild(el('text', {
+        x: M.wx(0.42), y: M.wy(q + 0.12 + dy/2) + 4,
+        'font-size': '11', fill: '#1B7837', 'font-style': 'italic'
+      })).textContent = `v = ${v.toFixed(2)}`;
+    }
+    if (r > 0.05) {
+      const dy = clamp(r * 0.04, 0.1, 0.6);
+      gArrows.appendChild(el('line', {
+        x1: M.wx(-0.30), y1: M.wy(0),
+        x2: M.wx(-0.30), y2: M.wy(dy),
+        stroke: '#B2182B', 'stroke-width': '2.5',
+        'marker-end': 'url(#arrow-red)'
+      }));
+      gArrows.appendChild(el('text', {
+        x: M.wx(-0.42), y: M.wy(dy/2) + 4,
+        'font-size': '11', fill: '#B2182B',
+        'font-style': 'italic', 'text-anchor': 'end'
+      })).textContent = `r = ${r.toFixed(2)}`;
+    }
+    gArrows.appendChild(el('line', {
+      x1: M.wx(M.X_MAX - 0.20), y1: M.wy(M.Y_MAX - 0.10),
+      x2: M.wx(M.X_MAX - 0.20), y2: M.wy(M.Y_MAX - 0.55),
+      stroke: '#888', 'stroke-width': '1.5',
+      'marker-end': 'url(#arrow-gray)'
+    }));
+    gArrows.appendChild(el('text', {
+      x: M.wx(M.X_MAX - 0.30), y: M.wy(M.Y_MAX - 0.30) + 4,
+      'font-size': '11', fill: '#888',
+      'font-style': 'italic', 'text-anchor': 'end'
+    })).textContent = 'g';
+  }
+
+  function step() {
+    const vFree = v - gG * h;
+    let r_step = 0, vNew;
+    if (q <= 1e-6) {
+      const vMinus = Math.min(v, 0);
+      const vTilde = vFree + restitution * vMinus;
+      const vTildeNew = Math.max(vTilde, 0);
+      r_step = m * (vTildeNew - vTilde);
+      vNew = vTildeNew - restitution * vMinus;
+    } else {
+      vNew = vFree;
+    }
+    v = vNew;
+    q = q + h * v;
+    if (q < 0) q = 0;
+    r = r_step;
+    tStep++;
+    history.push({ t: tStep * h, values: { q, v, r } });
+  }
+
+  function reset() {
+    q = 4.0; v = 0.0; r = 0.0; tStep = 0;
+    history.clear();
+    history.push({ t: 0, values: { q, v, r } });
+    render();
+  }
+
+  let playing = false;
+  let lastT = 0;
+  function loop(now) {
+    if (!playing) return;
+    const dt = (now - lastT) / 1000;
+    lastT = now;
+    const stepsToTake = Math.min(50, Math.floor(dt / h));
+    for (let i = 0; i < stepsToTake; i++) step();
+    render();
+    requestAnimationFrame(loop);
+  }
+
+  const readoutEl = document.getElementById('readout-ball');
+  const rowEls = buildReadout(readoutEl, 'Live readout', [
+    { id: 'ball-stepnum', label: 'step <em>n</em>' },
+    { id: 'ball-t', label: 'time <em>t</em> (s)' },
+    { id: 'ball-q', label: 'gap <em>q</em>' },
+    { id: 'ball-v', label: 'velocity <em>v</em>' },
+    { id: 'ball-r', label: 'reaction <em>r</em>' },
+  ]);
+  const legend = document.createElement('div');
+  legend.className = 'legend';
+  legend.innerHTML = `
+    <div><span class="swatch" style="background:#1B7837;"></span>velocity arrow</div>
+    <div><span class="swatch" style="background:#B2182B;"></span>reaction <em>r</em> (only at impact)</div>
+    <div class="hint" style="margin-top:0.5em;">
+      Press Play. The reaction <em>r</em> appears for a single time step at each impact, then is exactly zero between bounces.
+      The gap <em>q</em> stays ≥ 0 forever — no drift, no smoothing.
+    </div>
+  `;
+  readoutEl.appendChild(legend);
+
+  function render() {
+    drawFloor();
+    drawBall();
+    drawArrows();
+    setVal(rowEls['ball-stepnum'], tStep);
+    setVal(rowEls['ball-t'], (tStep * h).toFixed(3));
+    setVal(rowEls['ball-q'], q.toFixed(4));
+    setVal(rowEls['ball-v'], v.toFixed(3));
+    setVal(rowEls['ball-r'], r.toFixed(3), r > 1e-3 ? 'in-cone' : 'zero');
+    history.render();
+  }
+
+  const btnPlay = document.getElementById('ball-play');
+  btnPlay.addEventListener('click', () => {
+    playing = !playing;
+    btnPlay.textContent = playing ? '⏸ Pause' : '▶ Play';
+    if (playing) {
+      lastT = performance.now();
+      requestAnimationFrame(loop);
+    }
+  });
+  document.getElementById('ball-step').addEventListener('click', () => {
+    if (!playing) { step(); render(); }
+  });
+  document.getElementById('ball-reset').addEventListener('click', () => {
+    playing = false;
+    btnPlay.textContent = '▶ Play';
+    reset();
+  });
+
+  tabModules.ball = {
+    render,
+    onActivate() {},
+    onDeactivate() { playing = false; btnPlay.textContent = '▶ Play'; }
+  };
+  reset();
+})();
+
+// =========================================================================
+// TAB 4: Spring-slider (1D friction physics) — IMPROVED
+// k = 1.0, slower stepping, regime indicator, on-canvas friction gauge.
+// =========================================================================
+(function initSlider() {
+  const svg = document.getElementById('canvas-slider');
+  ensureMarkers(svg);
+  const M = makeMapping(700, 280, -3.0, 3.0, -1.4, 1.4);
+
+  // Physics — velocity-level Coulomb friction (real, with hysteresis)
+  //   m*v' + k*x = f + r,   x' = v,   r in -Sign(v),  |r| <= 1
+  //   Backward Euler step with rho = (m + h^2 k)/h kills the implicit r:
+  //     r^{n+1} = clip(-v^n/h + k*x^n - f, -1, 1)
+  //     v^{n+1} = (v^n - h k x^n + h f + h r^{n+1}) / (1 + h^2 k)     [m=1]
+  //     x^{n+1} = x^n + h v^{n+1}
+  const m_block = 1.0;
+  const k_spring = 1.0;
+  const h_step = 0.05;
+  let f = 0.0;
+  let x = 0.0;        // Moreau (true Coulomb): block position
+  let v = 0.0;        // Moreau: block velocity
+  let r = 0.0;        // Moreau: friction reaction (multi-valued, projected)
+  let tStep = 0;
+
+  // Regularized state — runs in lockstep with the Moreau state when enabled.
+  // Friction law replaced by smooth single-valued r_ε(v) = -tanh(v/ε).
+  // BE step solves a scalar nonlinear equation for v^{n+1} via Newton:
+  //   F(v) := (m + h^2 k) v + h tanh(v/ε) - h f + h k x^n = 0,
+  //   F'(v) = (m + h^2 k) + (h/ε) sech^2(v/ε)  > 0  always (well-posed).
+  // F' >= m + h^2 k for all v, so Newton can't divide by zero; stiffness for
+  // small ε just makes |F'| large near v=0, which actually helps convergence.
+  let regularize = false;
+  let epsReg = 0.10;
+  let xReg = 0.0;
+  let vReg = 0.0;
+  let rReg = 0.0;
+
+  // Three separate history charts so the visual signature of each regime is unambiguous:
+  //   - rfChart: friction r AND applied load f-kx overlaid. While stuck, equilibrium gives
+  //     r + (f - kx) = 0, so the two traces are MIRROR images about zero (equal and opposite).
+  //     When the load |f - kx| exceeds 1, friction saturates at ±1 and the block slips.
+  //   - vChart: velocity v. v = 0 exactly during stick is the signature of stick.
+  //   - xChart: position x.
+  const historyRF = makeHistoryChart(document.getElementById('history-slider-rf'), {
+    W: 360, H: 220, window: 600,
+    yLabel: 'r, load',
+    traces: [
+      { key: 'load',  label: 'load <em>f − kx</em>',           color: '#D95F02' },
+      { key: 'r',     label: '<em>r</em> (Moreau)',            color: '#B2182B' },
+      { key: 'rReg',  label: '<em>r</em><sub>ε</sub> (regularized)', color: '#B2182B', dash: '5,3' },
+    ]
+  });
+  const historyV = makeHistoryChart(document.getElementById('history-slider-v'), {
+    W: 360, H: 220, window: 600,
+    yLabel: 'v',
+    traces: [
+      { key: 'v',    label: '<em>v</em> (Moreau)',            color: '#1B7837' },
+      { key: 'vReg', label: '<em>v</em><sub>ε</sub> (regularized)', color: '#1B7837', dash: '5,3' },
+    ]
+  });
+  const historyX = makeHistoryChart(document.getElementById('history-slider-x'), {
+    W: 360, H: 220, window: 600,
+    yLabel: 'x',
+    traces: [
+      { key: 'x',    label: '<em>x</em> (Moreau)',            color: '#12355B' },
+      { key: 'xReg', label: '<em>x</em><sub>ε</sub> (regularized)', color: '#12355B', dash: '5,3' },
+    ]
+  });
+
+  const gFloor = el('g'); svg.appendChild(gFloor);
+  const gSpring = el('g'); svg.appendChild(gSpring);
+  const gBlock = el('g'); svg.appendChild(gBlock);
+  const gArrows = el('g'); svg.appendChild(gArrows);
+  const gGauge = el('g'); svg.appendChild(gGauge);
+  const gRegime = el('g'); svg.appendChild(gRegime);
+
+  function isStuck() {
+    // Stuck means v = 0 (no motion) and r is not at saturation
+    return Math.abs(v) < 1e-6 && Math.abs(r) < 1 - 1e-6;
+  }
+  function isSlipping() {
+    // Slipping means r is saturated AND there's actual motion
+    return Math.abs(r) >= 1 - 1e-6 && Math.abs(v) > 1e-4;
+  }
+
+  function drawFloor() {
+    clear(gFloor);
+    // Floor
+    gFloor.appendChild(el('line', {
+      x1: M.wx(M.X_MIN), y1: M.wy(-0.30),
+      x2: M.wx(M.X_MAX), y2: M.wy(-0.30),
+      stroke: '#444', 'stroke-width': '2'
+    }));
+    for (let xx = M.X_MIN; xx < M.X_MAX; xx += 0.25) {
+      gFloor.appendChild(el('line', {
+        x1: M.wx(xx), y1: M.wy(-0.30),
+        x2: M.wx(xx + 0.18), y2: M.wy(-0.55),
+        stroke: '#888', 'stroke-width': '1'
+      }));
+    }
+    // Wall (left)
+    gFloor.appendChild(el('rect', {
+      x: M.wx(M.X_MIN + 0.08), y: M.wy(0.95),
+      width: M.wx(M.X_MIN + 0.20) - M.wx(M.X_MIN + 0.08),
+      height: M.wy(-0.30) - M.wy(0.95),
+      fill: '#888'
+    }));
+    // x = 0 reference
+    gFloor.appendChild(el('line', {
+      x1: M.wx(0), y1: M.wy(-0.30),
+      x2: M.wx(0), y2: M.wy(-0.65),
+      stroke: '#1B7837', 'stroke-width': '1.2', 'stroke-dasharray': '3,2'
+    }));
+    gFloor.appendChild(el('text', {
+      x: M.wx(0), y: M.wy(-0.85),
+      'font-size': '11', fill: '#1B7837', 'text-anchor': 'middle',
+      'font-style': 'italic'
+    })).textContent = 'x = 0';
+  }
+
+  function drawSpring() {
+    clear(gSpring);
+    const x0 = M.X_MIN + 0.20;
+    const x1 = x - 0.30;
+    if (x1 <= x0) return;
+    const N = 14;
+    const yMid = 0.30;
+    const amp = 0.13;
+    const points = [`${M.wx(x0)},${M.wy(yMid)}`];
+    for (let i = 1; i < N; i++) {
+      const t = i / N;
+      const px = x0 + t * (x1 - x0);
+      const py = yMid + amp * (i % 2 === 0 ? -1 : 1);
+      points.push(`${M.wx(px)},${M.wy(py)}`);
+    }
+    points.push(`${M.wx(x1)},${M.wy(yMid)}`);
+    gSpring.appendChild(el('polyline', {
+      points: points.join(' '),
+      fill: 'none', stroke: '#12355B', 'stroke-width': '1.6'
+    }));
+    gSpring.appendChild(el('text', {
+      x: M.wx((x0 + x1)/2), y: M.wy(yMid + 0.40),
+      'font-size': '11', fill: '#12355B', 'font-style': 'italic',
+      'text-anchor': 'middle'
+    })).textContent = `k = ${k_spring}`;
+  }
+
+  function drawBlock() {
+    clear(gBlock);
+    const w = 0.55, hh = 0.55;
+    let fillC, strokeC;
+    if (isStuck()) { fillC = '#cfe5cf'; strokeC = '#1B7837'; }       // green = stuck
+    else if (isSlipping()) { fillC = '#ffd7ad'; strokeC = '#D95F02'; } // orange = slipping
+    else { fillC = '#bcd2e8'; strokeC = '#12355B'; }                  // blue = transient
+    gBlock.appendChild(el('rect', {
+      x: M.wx(x - w/2), y: M.wy(0.55),
+      width: M.wx(x + w/2) - M.wx(x - w/2),
+      height: M.wy(0) - M.wy(0.55),
+      fill: fillC, stroke: strokeC, 'stroke-width': '2',
+      style: 'cursor: grab;'
+    }));
+    gBlock.appendChild(el('text', {
+      x: M.wx(x), y: M.wy(0.30) + 4,
+      'font-size': '13', fill: strokeC, 'text-anchor': 'middle',
+      'font-style': 'italic'
+    })).textContent = 'm';
+    gBlock.appendChild(el('text', {
+      x: M.wx(x), y: M.wy(0.85),
+      'font-size': '11', fill: '#444', 'text-anchor': 'middle',
+      'font-family': 'monospace'
+    })).textContent = `x = ${x.toFixed(3)}`;
+  }
+
+  function drawArrows() {
+    clear(gArrows);
+    if (Math.abs(f) > 0.02) {
+      const dir = f > 0 ? 1 : -1;
+      const len = clamp(Math.abs(f) * 0.6, 0.15, 1.2);
+      gArrows.appendChild(el('line', {
+        x1: M.wx(x + dir*0.30), y1: M.wy(0.30),
+        x2: M.wx(x + dir*(0.30 + len)), y2: M.wy(0.30),
+        stroke: '#D95F02', 'stroke-width': '2.5',
+        'marker-end': 'url(#arrow-orange)'
+      }));
+      gArrows.appendChild(el('text', {
+        x: M.wx(x + dir*(0.30 + len/2)),
+        y: M.wy(0.30) - 6,
+        'font-size': '12', fill: '#D95F02',
+        'font-style': 'italic', 'text-anchor': 'middle'
+      })).textContent = `f = ${f >= 0 ? '+' : ''}${f.toFixed(2)}`;
+    }
+  }
+
+  // On-canvas friction gauge: a horizontal bar [-1, 1] with a needle for r,
+  // placed below the floor. This is the pedagogical heart of the demo.
+  function drawGauge() {
+    clear(gGauge);
+    const yBar = -1.05;
+    const xLeft = -1.5, xRight = 1.5;
+    const needleX = clamp(r, -1.5, 1.5);
+    // Background bar
+    gGauge.appendChild(el('rect', {
+      x: M.wx(xLeft), y: M.wy(yBar) - 8,
+      width: M.wx(xRight) - M.wx(xLeft), height: 16,
+      fill: '#f0f0f0', stroke: '#aaa', 'stroke-width': '1'
+    }));
+    // Highlight admissible region [-1, 1]
+    gGauge.appendChild(el('rect', {
+      x: M.wx(-1), y: M.wy(yBar) - 8,
+      width: M.wx(1) - M.wx(-1), height: 16,
+      fill: '#fff', stroke: '#444', 'stroke-width': '1'
+    }));
+    // Tick marks
+    for (const v of [-1, 0, 1]) {
+      gGauge.appendChild(el('line', {
+        x1: M.wx(v), y1: M.wy(yBar) - 12,
+        x2: M.wx(v), y2: M.wy(yBar) + 12,
+        stroke: '#444', 'stroke-width': '1.5'
+      }));
+      gGauge.appendChild(el('text', {
+        x: M.wx(v), y: M.wy(yBar) + 25,
+        'font-size': '11', fill: '#444', 'text-anchor': 'middle',
+        'font-family': 'monospace'
+      })).textContent = v.toString();
+    }
+    // Needle for r
+    const needleColor = isSlipping() ? '#D95F02' : '#1B7837';
+    gGauge.appendChild(el('rect', {
+      x: M.wx(needleX) - 2, y: M.wy(yBar) - 12,
+      width: 4, height: 24,
+      fill: needleColor, stroke: 'white', 'stroke-width': '0.5'
+    }));
+    // Friction-gauge label (left)
+    gGauge.appendChild(el('text', {
+      x: M.wx(-1.95), y: M.wy(yBar) + 5,
+      'font-size': '12', fill: '#444', 'font-style': 'italic',
+      'text-anchor': 'end'
+    })).textContent = 'friction r ∈ [−1, 1]:';
+    // r value (right)
+    gGauge.appendChild(el('text', {
+      x: M.wx(1.95), y: M.wy(yBar) + 5,
+      'font-size': '12', fill: needleColor,
+      'font-family': 'monospace', 'font-weight': 'bold'
+    })).textContent = `${r >= 0 ? '+' : ''}${r.toFixed(3)}`;
+  }
+
+  function drawRegime() {
+    clear(gRegime);
+    let txt = '', col = '#888';
+    if (isStuck()) { txt = '◼ STUCK   (v = 0 exact)'; col = '#1B7837'; }
+    else if (isSlipping()) { txt = '⤳ SLIPPING   (|r| = 1)'; col = '#D95F02'; }
+    else { txt = 'transient'; col = '#888'; }
+    gRegime.appendChild(el('text', {
+      x: M.wx(M.X_MAX - 0.1), y: M.wy(M.Y_MAX - 0.05),
+      'font-size': '13', 'font-weight': 'bold', fill: col,
+      'text-anchor': 'end'
+    })).textContent = txt;
+  }
+
+  // Newton iteration on F(v) = (m + h^2 k) v + h tanh(v/ε) - h f + h k x_old = 0
+  // Returns the solved v^{n+1}. Uses 30 iterations, 1e-10 tolerance — for the
+  // ε ≥ 0.01 range, converges in 5–15 iters typically.
+  function newtonRegularized(xOld, vOld, fApp, eps) {
+    const A = m_block + h_step * h_step * k_spring;
+    // RHS of BE equation: v^n + h(f - k x^n)
+    const c = vOld + h_step * fApp - h_step * k_spring * xOld;
+    let vk = vOld;       // initial guess: previous-step velocity
+    for (let i = 0; i < 30; i++) {
+      const u = vk / eps;
+      // tanh and sech^2 with overflow guards: for |u| > 30, tanh ~ ±1, sech^2 ~ 0.
+      let tanhU, sech2U;
+      if (Math.abs(u) > 30) {
+        tanhU = u > 0 ? 1 : -1;
+        sech2U = 0;
+      } else {
+        tanhU = Math.tanh(u);
+        const c2 = Math.cosh(u);
+        sech2U = 1 / (c2 * c2);
+      }
+      const F = A * vk + h_step * tanhU - c;
+      const Fp = A + (h_step / eps) * sech2U;
+      const dv = -F / Fp;
+      vk += dv;
+      if (Math.abs(dv) < 1e-10) break;
+    }
+    return vk;
+  }
+
+  function step() {
+    // --- Moreau (true Coulomb, projection-based BE) ---
+    const rNew = Math.max(-1, Math.min(1, -v / h_step + k_spring * x - f));
+    const vNew = (v - h_step * k_spring * x + h_step * f + h_step * rNew) / (1 + h_step * h_step * k_spring);
+    const xNew = x + h_step * vNew;
+    v = vNew; x = xNew; r = rNew;
+
+    // --- Regularized (smooth tanh, fully implicit BE via Newton) ---
+    if (regularize) {
+      const vNewReg = newtonRegularized(xReg, vReg, f, epsReg);
+      const xNewReg = xReg + h_step * vNewReg;
+      const rNewReg = -Math.tanh(vNewReg / epsReg);
+      vReg = vNewReg; xReg = xNewReg; rReg = rNewReg;
+    }
+
+    tStep++;
+    const t = tStep * h_step;
+    const load = f - k_spring * x;
+    const sample = { t, values: { load, r } };
+    if (regularize) {
+      sample.values.rReg = rReg;
+    }
+    historyRF.push(sample);
+    historyV.push({ t, values: { v, ...(regularize ? { vReg } : {}) } });
+    historyX.push({ t, values: { x, ...(regularize ? { xReg } : {}) } });
+  }
+
+  function reset() {
+    x = 0.0; v = 0.0; r = 0.0;
+    xReg = 0.0; vReg = 0.0; rReg = 0.0;
+    tStep = 0;
+    historyRF.clear(); historyV.clear(); historyX.clear();
+    const load0 = f - k_spring * x;
+    const sample = { t: 0, values: { load: load0, r } };
+    if (regularize) sample.values.rReg = rReg;
+    historyRF.push(sample);
+    historyV.push({ t: 0, values: { v, ...(regularize ? { vReg } : {}) } });
+    historyX.push({ t: 0, values: { x, ...(regularize ? { xReg } : {}) } });
+    render();
+  }
+
+  let playing = false;
+  let lastT = 0;
+  // Slower step rate for better visibility: roughly 20 Hz
+  const STEP_INTERVAL_MS = 50;
+  function loop(now) {
+    if (!playing) return;
+    const dt = now - lastT;
+    if (dt >= STEP_INTERVAL_MS) {
+      const stepsToTake = Math.min(5, Math.floor(dt / STEP_INTERVAL_MS));
+      for (let i = 0; i < stepsToTake; i++) step();
+      lastT = now;
+      render();
+    }
+    requestAnimationFrame(loop);
+  }
+
+  const readoutEl = document.getElementById('readout-slider');
+  const rowEls = buildReadout(readoutEl, 'Live readout', [
+    { id: 'sl-stepnum', label: 'step <em>n</em>' },
+    { id: 'sl-x',       label: '<em>x</em> (Moreau)' },
+    { id: 'sl-v',       label: '<em>v</em> (Moreau)' },
+    { id: 'sl-r',       label: '<em>r</em> (Moreau)' },
+    { id: 'sl-xreg',    label: '<em>x</em><sub>ε</sub> (regularized)' },
+    { id: 'sl-vreg',    label: '<em>v</em><sub>ε</sub> (regularized)' },
+    { id: 'sl-rreg',    label: '<em>r</em><sub>ε</sub> = −tanh(<em>v</em><sub>ε</sub>/ε)' },
+    { id: 'sl-f',       label: 'force <em>f</em>' },
+    { id: 'sl-regime',  label: 'regime (Moreau)' },
+  ]);
+  const legend = document.createElement('div');
+  legend.className = 'legend';
+  legend.innerHTML = `
+    <div><span class="swatch" style="background:#cfe5cf;"></span>block stuck (<em>v</em> = 0, |<em>r</em>| < 1)</div>
+    <div><span class="swatch" style="background:#ffd7ad;"></span>block slipping (|<em>r</em>| = 1)</div>
+    <div><span class="swatch" style="background:#D95F02;"></span>applied force <em>f</em></div>
+    <div class="hint" style="margin-top:0.5em;">
+      <strong>Drag the block</strong> to set its initial position (this pauses the simulation and resets <em>v</em> = 0).
+      Then press Play and watch what happens. Or run continuously while changing the force slider.
+      Try this: drag the block to <em>x</em> = 0.5, set <em>f</em> = 0, press Play —
+      block stays put because static friction (|<em>r</em>| < 1) balances the spring force <em>kx</em>.
+      Now nudge <em>f</em> until the block breaks free.
+    </div>
+    <div class="hint" style="margin-top:0.4em;">
+      <strong>Regularize toggle:</strong> overlays a smooth-friction simulation
+      <em>r</em><sub>ε</sub> = −tanh(<em>v</em>/ε) (dashed traces). Solved with fully implicit
+      backward Euler via Newton iteration on a scalar nonlinear equation —
+      no projection, no inclusion. Try ε = 0.5 (very smooth, block creeps when
+      "stuck") versus ε = 0.02 (close to true Coulomb, but the equation is
+      stiff). The dashed traces approach the solid Moreau ones as ε → 0.
+    </div>
+  `;
+  readoutEl.appendChild(legend);
+
+  function render() {
+    drawFloor();
+    drawSpring();
+    drawBlock();
+    drawArrows();
+    drawGauge();
+    drawRegime();
+    setVal(rowEls['sl-stepnum'], tStep);
+    setVal(rowEls['sl-x'], x.toFixed(4));
+    setVal(rowEls['sl-v'], v.toFixed(4));
+    setVal(rowEls['sl-f'], f.toFixed(3));
+    setVal(rowEls['sl-r'], r.toFixed(3), isSlipping() ? 'outside' : 'in-cone');
+    if (regularize) {
+      setVal(rowEls['sl-xreg'], xReg.toFixed(4));
+      setVal(rowEls['sl-vreg'], vReg.toFixed(4));
+      setVal(rowEls['sl-rreg'], rReg.toFixed(3));
+    } else {
+      setVal(rowEls['sl-xreg'], '—');
+      setVal(rowEls['sl-vreg'], '—');
+      setVal(rowEls['sl-rreg'], '—');
+    }
+    if (isStuck()) setVal(rowEls['sl-regime'], 'stuck (v = 0 exact)', 'in-cone');
+    else if (isSlipping()) setVal(rowEls['sl-regime'], 'slip (|r| = 1)', 'outside');
+    else setVal(rowEls['sl-regime'], 'transient', '');
+    historyRF.render();
+    historyV.render();
+    historyX.render();
+  }
+
+  const btnPlay = document.getElementById('slider-play');
+  btnPlay.addEventListener('click', () => {
+    playing = !playing;
+    btnPlay.textContent = playing ? '⏸ Pause' : '▶ Play';
+    if (playing) {
+      lastT = performance.now();
+      requestAnimationFrame(loop);
+    }
+  });
+  document.getElementById('slider-step').addEventListener('click', () => {
+    if (!playing) { step(); render(); }
+  });
+  document.getElementById('slider-reset').addEventListener('click', () => {
+    playing = false;
+    btnPlay.textContent = '▶ Play';
+    reset();
+  });
+  const fSlider = document.getElementById('slider-force');
+  const fVal = document.getElementById('slider-force-val');
+  fSlider.addEventListener('input', () => {
+    f = parseFloat(fSlider.value);
+    fVal.textContent = (f >= 0 ? '+' : '') + f.toFixed(2);
+    if (!playing) render();
+  });
+
+  // Regularize toggle: enables/disables the regularized run. When enabled,
+  // shows the ε slider; when disabled, hides it. Both states keep their
+  // previous values; we don't reset on toggle (user might want to compare
+  // by toggling on/off mid-run, though that requires history to be
+  // pre-populated, so for now we reset to keep the visual clean).
+  const regCheckbox = document.getElementById('slider-regularize');
+  const epsWrap = document.getElementById('slider-eps-wrap');
+  const epsSlider = document.getElementById('slider-eps');
+  const epsVal = document.getElementById('slider-eps-val');
+  regCheckbox.addEventListener('change', () => {
+    regularize = regCheckbox.checked;
+    epsWrap.style.display = regularize ? '' : 'none';
+    if (regularize) {
+      // Sync the regularized state to the current Moreau state so the two
+      // methods start the comparison from the same point.
+      xReg = x; vReg = v; rReg = -Math.tanh(v / epsReg);
+    }
+    reset();
+  });
+  epsSlider.addEventListener('input', () => {
+    epsReg = parseFloat(epsSlider.value);
+    epsVal.textContent = epsReg.toFixed(2);
+    if (regularize) {
+      // Re-evaluate the smooth friction at the current velocity
+      rReg = -Math.tanh(vReg / epsReg);
+    }
+    if (!playing) render();
+  });
+
+  // Make the block draggable. Dragging snaps x to the cursor's world x,
+  // resets v to 0 (you're placing the block, not flicking it), and pauses
+  // the simulation so the user sees the new state cleanly.
+  // Block is centered at (x, ~0.28) in world coords; use generous hit radius.
+  makeDragSystem(svg, () => M, () => [
+    { key: 'block',
+      getPos: () => ({ x, y: 0.28 }),
+      setPos: (p) => {
+        if (playing) { playing = false; btnPlay.textContent = '▶ Play'; }
+        x = clamp(p.x, M.X_MIN + 0.5, M.X_MAX - 0.3);
+        v = 0;
+        r = Math.max(-1, Math.min(1, k_spring * x - f));
+        // Also reset the regularized state to the same drag position so the two methods
+        // start the next play from the same condition.
+        xReg = x; vReg = 0; rReg = -Math.tanh(0 / epsReg);  // = 0
+        const t = tStep * h_step;
+        const load = f - k_spring * x;
+        const sample = { t, values: { load, r } };
+        if (regularize) sample.values.rReg = rReg;
+        historyRF.push(sample);
+        historyV.push({ t, values: { v, ...(regularize ? { vReg } : {}) } });
+        historyX.push({ t, values: { x, ...(regularize ? { xReg } : {}) } });
+      },
+      hitRadius: 0.45
+    }
+  ], render);
+
+  tabModules.slider = {
+    render,
+    onActivate() {},
+    onDeactivate() { playing = false; btnPlay.textContent = '▶ Play'; }
+  };
+  reset();
+})();
+
+// =========================================================================
+// TAB 5: Coulomb 2D iteration — split-panel (dual + primal)
+//
+// Left panel: dual space (velocities). Shows K_mu^* (slope 1/mu, opens upward),
+//   v^free (gray dashed arrow, draggable from origin), v_tilde (orange arrow at
+//   the current iterate, derived from r^k).
+// Right panel: primal space (reactions). Shows K_mu (slope mu, opens upward),
+//   the iteration trajectory r^0 -> r^1 -> ... and the current iterate.
+//
+// Math (W = I): v(r) = v^free + r;  v_tilde = (v_t, v_n + mu*|v_t|);
+//   r^{k+1} = proj_{K_mu}(r^k - rho * v_tilde(r^k)).
+// =========================================================================
+(function initIterate() {
+  const svg = document.getElementById('canvas-iterate');
+  ensureMarkers(svg);
+
+  // Single combined panel matching the lecture slide's three-regime visualization:
+  // K_μ (narrow softorange wedge) inside K_μ* (wide gray wedge), both anchored at origin.
+  // r and ṽ are drawn as vectors from origin; their constraint is r ∈ K_μ, ṽ ∈ K_μ*, r·ṽ = 0.
+  // The viewer sees the orthogonal-faces structure directly.
+  const VW = 1100, VH = 540;
+  // World ranges chosen for near-isotropic pixels (1100/540 ≈ 2.04, 7/3.5 = 2.0)
+  const X_MIN = -3.5, X_MAX = 3.5, Y_MIN = -1.0, Y_MAX = 2.5;
+
+  function makeMapping() {
+    const SX = VW / (X_MAX - X_MIN);
+    const SY = VH / (Y_MAX - Y_MIN);
+    return {
+      SX, SY, W: VW, H: VH,
+      X_MIN, X_MAX, Y_MIN, Y_MAX,
+      wx: (xs) => (xs - X_MIN) * SX,
+      wy: (ys) => VH - (ys - Y_MIN) * SY,
+      ux: (px) => px / SX + X_MIN,
+      uy: (py) => (VH - py) / SY + Y_MIN,
+    };
+  }
+  const M = makeMapping();
+
+  function eventToSvg(evt) {
+    const rect = svg.getBoundingClientRect();
+    const cx = evt.touches ? evt.touches[0].clientX : evt.clientX;
+    const cy = evt.touches ? evt.touches[0].clientY : evt.clientY;
+    const px = (cx - rect.left) * (VW / rect.width);
+    const py = (cy - rect.top) * (VH / rect.height);
+    return { px, py };
+  }
+
+  const MU = 0.5;
+
+  // State
+  let vFree = { x: 1.0, y: -0.5 };
+  let rho = 0.5;
+  let trajectory = [{ x: 0, y: 0 }];
+  let trials = [];
+  let lastDelta = 0;
+
+  // Layer groups (drawing order = z-order)
+  const gFrame   = el('g'); svg.appendChild(gFrame);
+  const gDual    = el('g'); svg.appendChild(gDual);    // K_μ* wide wedge
+  const gPrimal  = el('g'); svg.appendChild(gPrimal);  // K_μ narrow wedge
+  const gAxes    = el('g'); svg.appendChild(gAxes);
+  const gTrials  = el('g'); svg.appendChild(gTrials);  // hollow orange dots (trial trail)
+  const gTraj    = el('g'); svg.appendChild(gTraj);    // r-trajectory dots
+  const gVecs    = el('g'); svg.appendChild(gVecs);    // r, ṽ, v_free vectors
+  const gLabels  = el('g'); svg.appendChild(gLabels);
+
+  function vTilde(v) {
+    return { x: v.x, y: v.y + MU * Math.abs(v.x) };
+  }
+  function projKmu(p) {
+    return SHAPES.coulomb.project(p);
+  }
+  function stepOnce() {
+    const r = trajectory[trajectory.length - 1];
+    const v = { x: vFree.x + r.x, y: vFree.y + r.y };
+    const vT = vTilde(v);
+    const trial = { x: r.x - rho * vT.x, y: r.y - rho * vT.y };
+    const proj = projKmu(trial);
+    const rNext = { x: proj.x, y: proj.y };
+    lastDelta = Math.hypot(rNext.x - r.x, rNext.y - r.y);
+    trajectory.push(rNext);
+    trials.push(trial);
+  }
+  function reset() {
+    trajectory = [{ x: 0, y: 0 }];
+    trials = [];
+    lastDelta = 0;
+    if (running) { running = false; btnRun.textContent = 'Run to convergence'; }
+    render();
+  }
+
+  // ---- Drawing ----
+
+  // Clip a ray (t*dx, t*dy) for t >= 0 to the panel rectangle; return its end point.
+  function rayEnd(dx, dy) {
+    let t = Infinity;
+    if (dx > 0) t = Math.min(t, (X_MAX - 0.02) / dx);
+    else if (dx < 0) t = Math.min(t, (X_MIN + 0.02) / dx);
+    if (dy > 0) t = Math.min(t, (Y_MAX - 0.02) / dy);
+    else if (dy < 0) t = Math.min(t, (Y_MIN + 0.02) / dy);
+    return { x: t * dx, y: t * dy };
+  }
+
+  function drawFrame() {
+    clear(gFrame);
+    gFrame.appendChild(el('rect', {
+      x: 0, y: 0, width: VW, height: VH,
+      fill: '#fafbfc', stroke: '#d0d6de', 'stroke-width': '1'
+    }));
+    // Title (top-left)
+    gFrame.appendChild(el('text', {
+      x: 14, y: 22,
+      'font-size': '14', 'font-weight': '600', fill: '#12355B'
+    })).textContent = 'Cone complementarity:  r ∈ K_μ,  ṽ ∈ K_μ*,  r · ṽ = 0';
+    // Status (top-right)
+    gFrame.appendChild(el('text', {
+      x: VW - 14, y: 22,
+      'font-size': '12', 'font-family': 'monospace', fill: '#666', 'text-anchor': 'end'
+    })).textContent = `W = I, μ = ${MU}, ρ = ${rho.toFixed(2)}, k = ${trajectory.length - 1}`;
+    // Convergence indicator (top-right second line)
+    if (trajectory.length > 1) {
+      const conv = lastDelta < 1e-4;
+      gFrame.appendChild(el('text', {
+        x: VW - 14, y: 40,
+        'font-size': '11', 'font-family': 'monospace',
+        fill: conv ? '#1B7837' : '#888', 'text-anchor': 'end'
+      })).textContent = `‖Δr‖ = ${lastDelta.toFixed(5)}` + (conv ? ' (converged)' : '');
+    }
+  }
+
+  function drawAxes() {
+    clear(gAxes);
+    // Horizontal (r_t = v_t)
+    gAxes.appendChild(el('line', {
+      x1: M.wx(X_MIN), y1: M.wy(0), x2: M.wx(X_MAX), y2: M.wy(0),
+      stroke: '#bbb', 'stroke-width': '1'
+    }));
+    // Vertical (r_n = v_n)
+    gAxes.appendChild(el('line', {
+      x1: M.wx(0), y1: M.wy(Y_MIN), x2: M.wx(0), y2: M.wy(Y_MAX),
+      stroke: '#bbb', 'stroke-width': '1'
+    }));
+    // Axis labels (slide convention: shared axes for r and v)
+    gAxes.appendChild(el('text', {
+      x: M.wx(X_MAX - 0.10), y: M.wy(0) + 16,
+      'font-size': '11', fill: '#555', 'font-style': 'italic', 'text-anchor': 'end'
+    })).textContent = 'r_t , v_t';
+    gAxes.appendChild(el('text', {
+      x: M.wx(0) + 8, y: M.wy(Y_MAX - 0.10),
+      'font-size': '11', fill: '#555', 'font-style': 'italic'
+    })).textContent = 'r_n , v_n';
+    gAxes.appendChild(el('circle', { cx: M.wx(0), cy: M.wy(0), r: '3', fill: '#444' }));
+  }
+
+  // K_μ*: wide gray wedge with apex angle 2*arctan(1/μ).
+  // Right edge direction: w_n = μ w_t for w_t > 0, i.e. (1, μ). Slope (run/rise) = 1/μ.
+  function drawDualCone() {
+    clear(gDual);
+    const dualR = rayEnd(1, MU);
+    const dualL = rayEnd(-1, MU);
+    // Filled wedge (the cone restricted to the visible window). Use Sutherland-Hodgman
+    // by clipping [X_MIN,X_MAX] x [0,Y_MAX] against the two cone half-spaces.
+    const corners = [
+      { x: X_MIN, y: 0 }, { x: X_MAX, y: 0 },
+      { x: X_MAX, y: Y_MAX }, { x: X_MIN, y: Y_MAX }
+    ];
+    function clipBy(poly, side) {
+      const out = [];
+      for (let i = 0; i < poly.length; i++) {
+        const A = poly[i], B = poly[(i+1) % poly.length];
+        const sA = side(A), sB = side(B);
+        const aIn = sA >= 0, bIn = sB >= 0;
+        if (aIn) {
+          out.push(A);
+          if (!bIn) {
+            const t = sA / (sA - sB);
+            out.push({ x: A.x + t*(B.x - A.x), y: A.y + t*(B.y - A.y) });
+          }
+        } else if (bIn) {
+          const t = sA / (sA - sB);
+          out.push({ x: A.x + t*(B.x - A.x), y: A.y + t*(B.y - A.y) });
+        }
+      }
+      return out;
+    }
+    let poly = corners;
+    // K_μ* = {y >= μ |x|} = {y >= μ x} ∩ {y >= -μ x}
+    poly = clipBy(poly, p => p.y - MU * p.x);   // y - μx >= 0
+    poly = clipBy(poly, p => p.y + MU * p.x);   // y + μx >= 0
+    if (poly.length >= 3) {
+      const pts = poly.map(p => `${M.wx(p.x)},${M.wy(p.y)}`).join(' ');
+      gDual.appendChild(el('polygon', {
+        points: pts, fill: '#d8dde4', 'fill-opacity': '0.85', stroke: 'none'
+      }));
+    }
+    // Boundary rays (slightly thicker)
+    gDual.appendChild(el('line', {
+      x1: M.wx(0), y1: M.wy(0),
+      x2: M.wx(dualR.x), y2: M.wy(dualR.y),
+      stroke: '#888', 'stroke-width': '1.5'
+    }));
+    gDual.appendChild(el('line', {
+      x1: M.wx(0), y1: M.wy(0),
+      x2: M.wx(dualL.x), y2: M.wy(dualL.y),
+      stroke: '#888', 'stroke-width': '1.5'
+    }));
+    // Label
+    gDual.appendChild(el('text', {
+      x: M.wx(X_MIN + 0.15), y: M.wy(Y_MAX - 0.20),
+      'font-size': '15', 'font-style': 'italic', fill: '#555'
+    })).textContent = 'K_μ*';
+  }
+
+  // K_μ: narrow softorange wedge inside K_μ*. Right edge direction (μ, 1).
+  function drawPrimalCone() {
+    clear(gPrimal);
+    const tipR = rayEnd(MU, 1);
+    const tipL = rayEnd(-MU, 1);
+    const pts = `${M.wx(0)},${M.wy(0)} ${M.wx(tipL.x)},${M.wy(tipL.y)} ${M.wx(tipR.x)},${M.wy(tipR.y)}`;
+    gPrimal.appendChild(el('polygon', {
+      points: pts, fill: '#f3a36b', 'fill-opacity': '0.65', stroke: 'none'
+    }));
+    gPrimal.appendChild(el('line', {
+      x1: M.wx(0), y1: M.wy(0),
+      x2: M.wx(tipR.x), y2: M.wy(tipR.y),
+      stroke: '#a04318', 'stroke-width': '1.8'
+    }));
+    gPrimal.appendChild(el('line', {
+      x1: M.wx(0), y1: M.wy(0),
+      x2: M.wx(tipL.x), y2: M.wy(tipL.y),
+      stroke: '#a04318', 'stroke-width': '1.8'
+    }));
+    // Label inside the cone, near the top
+    gPrimal.appendChild(el('text', {
+      x: M.wx(0), y: M.wy(Y_MAX - 0.30),
+      'font-size': '15', 'font-style': 'italic', fill: '#a04318',
+      'text-anchor': 'middle', 'font-weight': '600'
+    })).textContent = 'K_μ';
+  }
+
+  // Draw the trial trail (faint hollow dots + dashed lines) — same as before, but
+  // overlaid on the single combined panel rather than its own panel.
+  function drawTrials() {
+    clear(gTrials);
+    if (trials.length === 0) return;
+    for (let k = 0; k < trials.length; k++) {
+      const T = trials[k];
+      const rk = trajectory[k];
+      const rNext = trajectory[k + 1];
+      const isLast = (k === trials.length - 1);
+      // Step line r^k -> T^k
+      gTrials.appendChild(el('line', {
+        x1: M.wx(rk.x), y1: M.wy(rk.y),
+        x2: M.wx(T.x),  y2: M.wy(T.y),
+        stroke: '#D95F02',
+        'stroke-width': isLast ? 2 : 1, 'stroke-dasharray': '3,2',
+        opacity: isLast ? 0.85 : 0.30
+      }));
+      // Projection line T^k -> r^{k+1}
+      gTrials.appendChild(el('line', {
+        x1: M.wx(T.x),     y1: M.wy(T.y),
+        x2: M.wx(rNext.x), y2: M.wy(rNext.y),
+        stroke: '#1B7837',
+        'stroke-width': isLast ? 1.5 : 1, 'stroke-dasharray': '4,2',
+        opacity: isLast ? 0.7 : 0.20
+      }));
+      // Trial dot
+      gTrials.appendChild(el('circle', {
+        cx: M.wx(T.x), cy: M.wy(T.y),
+        r: isLast ? 5 : 3,
+        fill: 'white', stroke: '#D95F02',
+        'stroke-width': isLast ? 2 : 1.2,
+        opacity: isLast ? 1.0 : 0.55
+      }));
+      if (isLast) {
+        gTrials.appendChild(el('text', {
+          x: M.wx(T.x) + 8, y: M.wy(T.y) + 4,
+          'font-size': '12', 'font-style': 'italic', fill: '#D95F02',
+          'font-weight': '600'
+        })).textContent = 'T' + kSup(k);
+      }
+    }
+  }
+  function kSup(k) {
+    const supChars = '⁰¹²³⁴⁵⁶⁷⁸⁹';
+    return (k < 10) ? supChars[k]
+      : k.toString().split('').map(d => supChars[+d]).join('');
+  }
+
+  function drawTrajectory() {
+    clear(gTraj);
+    if (trajectory.length === 0) return;
+    if (trajectory.length >= 2) {
+      const pts = trajectory.map(p => `${M.wx(p.x)},${M.wy(p.y)}`).join(' ');
+      gTraj.appendChild(el('polyline', {
+        points: pts, fill: 'none',
+        stroke: '#12355B', 'stroke-width': '1.2', 'stroke-dasharray': '3,2',
+        opacity: '0.5'
+      }));
+    }
+    for (let i = 0; i < trajectory.length - 1; i++) {
+      const p = trajectory[i];
+      gTraj.appendChild(el('circle', {
+        cx: M.wx(p.x), cy: M.wy(p.y), r: i === 0 ? 4 : 3,
+        fill: '#12355B', opacity: i === 0 ? 0.9 : 0.4
+      }));
+      if (i === 0) {
+        gTraj.appendChild(el('text', {
+          x: M.wx(p.x + 0.10), y: M.wy(p.y - 0.10),
+          'font-size': '11', 'font-style': 'italic', fill: '#12355B'
+        })).textContent = 'r⁰';
+      }
+    }
+  }
+
+  // Vectors (drawn from origin):
+  //   r^k as a thick darkred arrow,
+  //   ṽ^k as a thick deepblue arrow,
+  //   v_free as a gray dashed arrow (input),
+  //   right-angle marker for r ⊥ ṽ when both are nontrivial (sliding regime).
+  function drawVectors() {
+    clear(gVecs);
+    const r = trajectory[trajectory.length - 1];
+    const v = { x: vFree.x + r.x, y: vFree.y + r.y };
+    const vT = vTilde(v);
+
+    // v_free (gray dashed arrow from origin) — the user's input
+    gVecs.appendChild(el('line', {
+      x1: M.wx(0), y1: M.wy(0),
+      x2: M.wx(vFree.x), y2: M.wy(vFree.y),
+      stroke: '#888', 'stroke-width': '1.5', 'stroke-dasharray': '4,3',
+      'marker-end': 'url(#arrow-gray)', opacity: 0.85
+    }));
+    gVecs.appendChild(el('text', {
+      x: M.wx(vFree.x) + (vFree.x >= 0 ? 8 : -8),
+      y: M.wy(vFree.y) + (vFree.y >= 0 ? -4 : 14),
+      'font-size': '12', 'font-style': 'italic', fill: '#555',
+      'text-anchor': vFree.x >= 0 ? 'start' : 'end'
+    })).textContent = 'v_free';
+    // Drag handle (subtle ring at the tip)
+    gVecs.appendChild(el('circle', {
+      cx: M.wx(vFree.x), cy: M.wy(vFree.y), r: '10',
+      fill: '#888', 'fill-opacity': '0.18'
+    }));
+    gVecs.appendChild(el('circle', {
+      cx: M.wx(vFree.x), cy: M.wy(vFree.y), r: '5',
+      fill: '#888', stroke: 'white', 'stroke-width': '1.5'
+    }));
+
+    // ṽ (deepblue arrow from origin)
+    if (Math.hypot(vT.x, vT.y) > 1e-3) {
+      gVecs.appendChild(el('line', {
+        x1: M.wx(0), y1: M.wy(0),
+        x2: M.wx(vT.x), y2: M.wy(vT.y),
+        stroke: '#12355B', 'stroke-width': '2.5',
+        'marker-end': 'url(#arrow-blue)'
+      }));
+      gVecs.appendChild(el('text', {
+        x: M.wx(vT.x) + (vT.x >= 0 ? 8 : -8),
+        y: M.wy(vT.y) + (vT.y >= 0 ? -4 : 14),
+        'font-size': '14', 'font-style': 'italic', 'font-weight': '600',
+        fill: '#12355B', 'text-anchor': vT.x >= 0 ? 'start' : 'end'
+      })).textContent = 'ṽ';
+    }
+
+    // r (darkred arrow from origin)
+    if (Math.hypot(r.x, r.y) > 1e-3) {
+      gVecs.appendChild(el('line', {
+        x1: M.wx(0), y1: M.wy(0),
+        x2: M.wx(r.x), y2: M.wy(r.y),
+        stroke: '#B2182B', 'stroke-width': '2.5',
+        'marker-end': 'url(#arrow-red)'
+      }));
+      gVecs.appendChild(el('text', {
+        x: M.wx(r.x) + (r.x >= 0 ? 8 : -8),
+        y: M.wy(r.y) + (r.y >= 0 ? -4 : 14),
+        'font-size': '14', 'font-style': 'italic', 'font-weight': '600',
+        fill: '#B2182B', 'text-anchor': r.x >= 0 ? 'start' : 'end'
+      })).textContent = 'r';
+    }
+
+    // r ⊥ ṽ marker (right-angle symbol at origin) when both nontrivial
+    const rMag = Math.hypot(r.x, r.y), vMag = Math.hypot(vT.x, vT.y);
+    if (rMag > 0.05 && vMag > 0.05) {
+      const rDot = (r.x * vT.x + r.y * vT.y) / (rMag * vMag);
+      if (Math.abs(rDot) < 1e-3) {
+        // Draw a small green right-angle marker at origin between the two vectors
+        const sz = 0.18;  // world units
+        const rh = { x: r.x / rMag, y: r.y / rMag };
+        const vh = { x: vT.x / vMag, y: vT.y / vMag };
+        const A = { x: rh.x * sz, y: rh.y * sz };
+        const C = { x: vh.x * sz, y: vh.y * sz };
+        const B = { x: A.x + C.x, y: A.y + C.y };
+        gVecs.appendChild(el('polyline', {
+          points: `${M.wx(A.x)},${M.wy(A.y)} ${M.wx(B.x)},${M.wy(B.y)} ${M.wx(C.x)},${M.wy(C.y)}`,
+          fill: 'none', stroke: '#1B7837', 'stroke-width': '1.5'
+        }));
+        // Label
+        gVecs.appendChild(el('text', {
+          x: M.wx(B.x * 1.6), y: M.wy(B.y * 1.6),
+          'font-size': '11', 'font-style': 'italic', fill: '#1B7837',
+          'text-anchor': 'middle', 'font-weight': '600'
+        })).textContent = 'r ⊥ ṽ';
+      }
+    }
+  }
+
+  function regimeAt(r) {
+    if (Math.hypot(r.x, r.y) < 1e-3) return 'apex (take-off)';
+    if (Math.abs(Math.abs(r.x) - MU * r.y) < 1e-2) return 'edge (sliding)';
+    if (SHAPES.coulomb.contains(r)) return 'interior (sticking)';
+    return '?';
+  }
+
+  // Drag system: drag the v_free tip
+  let dragging = false;
+  function onDown(e) {
+    const { px, py } = eventToSvg(e);
+    const tipPx = M.wx(vFree.x), tipPy = M.wy(vFree.y);
+    const d = Math.hypot(px - tipPx, py - tipPy);
+    if (d < 30) { dragging = true; e.preventDefault(); }
+  }
+  function onMove(e) {
+    if (!dragging) return;
+    const { px, py } = eventToSvg(e);
+    vFree.x = clamp(M.ux(px), X_MIN + 0.1, X_MAX - 0.1);
+    vFree.y = clamp(M.uy(py), Y_MIN + 0.1, Y_MAX - 0.1);
+    trajectory = [{ x: 0, y: 0 }];
+    trials = [];
+    lastDelta = 0;
+    render();
+    if (e.touches) e.preventDefault();
+  }
+  function onUp() { dragging = false; }
+  svg.addEventListener('mousedown', onDown);
+  svg.addEventListener('touchstart', onDown, { passive: false });
+  document.addEventListener('mousemove', onMove);
+  document.addEventListener('touchmove', onMove, { passive: false });
+  document.addEventListener('mouseup', onUp);
+  document.addEventListener('touchend', onUp);
+
+  // Readout
+  const readoutEl = document.getElementById('readout-iterate');
+  const rowEls = buildReadout(readoutEl, 'Live readout', [
+    { id: 'it-vfree', label: '<em>v</em><sup>free</sup>' },
+    { id: 'it-rho', label: 'step size ρ' },
+    { id: 'it-k', label: 'iteration <em>k</em>' },
+    { id: 'it-r', label: '<em>r</em><sup>k</sup>' },
+    { id: 'it-v', label: '<em>v</em><sup>k</sup> = <em>v</em><sup>free</sup> + <em>r</em><sup>k</sup>' },
+    { id: 'it-vtilde', label: '<em>ṽ</em><sup>k</sup>' },
+    { id: 'it-pairing', label: '<em>r·ṽ</em>' },
+    { id: 'it-delta', label: '‖<em>r</em><sup>k</sup>−<em>r</em><sup>k−1</sup>‖' },
+    { id: 'it-regime', label: 'regime' },
+  ]);
+  const legend = document.createElement('div');
+  legend.className = 'legend';
+  legend.innerHTML = `
+    <div><span class="swatch" style="background:#d8dde4;"></span>dual cone <em>K<sub>μ</sub></em><sup>*</sup> (wide; where <em>ṽ</em> lives)</div>
+    <div><span class="swatch" style="background:#f3a36b;"></span>primal cone <em>K<sub>μ</sub></em> (narrow; where <em>r</em> lives)</div>
+    <div><span class="swatch" style="background:#888; border-radius:50%; width:11px; height:11px;"></span>drag <em>v</em><sup>free</sup> tip</div>
+    <div><span class="swatch" style="background:#B2182B; border-radius:50%; width:11px; height:11px;"></span><em>r</em><sup>k</sup> arrow (current iterate)</div>
+    <div><span class="swatch" style="background:#12355B; border-radius:50%; width:11px; height:11px;"></span><em>ṽ</em><sup>k</sup> arrow + previous iterate dots</div>
+    <div><span class="swatch" style="background:white; border:2px solid #D95F02; border-radius:50%; width:9px; height:9px;"></span>trial <em>T<sup>k</sup></em> = <em>r<sup>k</sup></em>−ρ<em>ṽ<sup>k</sup></em></div>
+    <div class="hint" style="margin-top:0.5em;">
+      Three regimes appear visually: <em>r</em> in the strict interior of <em>K<sub>μ</sub></em> with <em>ṽ</em> = 0 (sticking);
+      both on respective faces with <em>r</em>⊥<em>ṽ</em> (sliding, green right-angle marker appears);
+      <em>r</em> = 0 with <em>ṽ</em> free in <em>K<sub>μ</sub></em><sup>*</sup> (take-off).
+    </div>
+    <div class="hint" style="margin-top:0.4em;">
+      Trial trail (hollow orange) shows where the iteration would step <em>without</em> the constraint;
+      green dashed arrows show projection back onto <em>K<sub>μ</sub></em>. As iteration converges, the trial sits at a fixed
+      point off the cone whose projection stays at <em>r</em>*.
+    </div>
+  `;
+  readoutEl.appendChild(legend);
+
+  function render() {
+    drawFrame();
+    drawDualCone();
+    drawPrimalCone();
+    drawAxes();
+    drawTrials();
+    drawTrajectory();
+    drawVectors();
+
+    // Readout updates
+    const r = trajectory[trajectory.length - 1];
+    const v = { x: vFree.x + r.x, y: vFree.y + r.y };
+    const vT = vTilde(v);
+    setVal(rowEls['it-vfree'], `(${vFree.x.toFixed(3)}, ${vFree.y.toFixed(3)})`);
+    setVal(rowEls['it-rho'], rho.toFixed(2));
+    setVal(rowEls['it-k'], (trajectory.length - 1));
+    setVal(rowEls['it-r'], `(${r.x.toFixed(3)}, ${r.y.toFixed(3)})`);
+    setVal(rowEls['it-v'], `(${v.x.toFixed(3)}, ${v.y.toFixed(3)})`);
+    setVal(rowEls['it-vtilde'], `(${vT.x.toFixed(3)}, ${vT.y.toFixed(3)})`);
+    const pairing = r.x * vT.x + r.y * vT.y;
+    setVal(rowEls['it-pairing'], pairing.toFixed(4),
+      Math.abs(pairing) < 1e-3 ? 'in-cone' : '');
+    setVal(rowEls['it-delta'],
+      trajectory.length > 1
+        ? lastDelta.toFixed(5) + (lastDelta < 1e-4 ? ' (conv)' : '')
+        : '—',
+      lastDelta < 1e-4 && trajectory.length > 1 ? 'in-cone' : ''
+    );
+    setVal(rowEls['it-regime'], regimeAt(r));
+  }
+
+  // Buttons
+  document.getElementById('iter-step').addEventListener('click', () => {
+    stepOnce();
+    render();
+  });
+  let running = false;
+  const btnRun = document.getElementById('iter-run');
+  btnRun.addEventListener('click', () => {
+    running = !running;
+    btnRun.textContent = running ? '⏸ Pause' : 'Run to convergence';
+    if (running) runLoop();
+  });
+  function runLoop() {
+    if (!running) return;
+    stepOnce();
+    render();
+    if (lastDelta < 1e-5 || trajectory.length > 200) {
+      running = false;
+      btnRun.textContent = 'Run to convergence';
+      return;
+    }
+    setTimeout(runLoop, 150);
+  }
+  document.getElementById('iter-reset').addEventListener('click', reset);
+  const rhoSlider = document.getElementById('iter-rho');
+  const rhoVal = document.getElementById('iter-rho-val');
+  rhoSlider.addEventListener('input', () => {
+    rho = parseFloat(rhoSlider.value);
+    rhoVal.textContent = rho.toFixed(2);
+    trajectory = [{ x: 0, y: 0 }];
+    trials = [];
+    lastDelta = 0;
+    render();
+  });
+
+  tabModules.iterate = {
+    render,
+    onActivate() {},
+    onDeactivate() {
+      if (running) { running = false; btnRun.textContent = 'Run to convergence'; }
+    }
+  };
+  render();
+})();
+
+// =========================================================================
+// History chart utility (for physics tabs)
+// =========================================================================
+function makeHistoryChart(svg, conf) {
+  const W = conf.W, H = conf.H;
+  // Larger left margin so a rotated y-axis label fits without clashing with tick numbers.
+  const ML = 56, MR = 14, MT = 22, MB = 32;
+  const plotW = W - ML - MR;
+  const plotH = H - MT - MB;
+  const traces = conf.traces;
+  const window = conf.window;
+  const yLabel = conf.yLabel || '';   // e.g. 'r, load' or 'v' or 'x'
+  const xLabel = conf.xLabel || 't';  // axis name
+  const samples = [];
+
+  function push(s) {
+    samples.push(s);
+    while (samples.length > window) samples.shift();
+  }
+  function clearAll() { samples.length = 0; }
+  function render() {
+    while (svg.firstChild) svg.removeChild(svg.firstChild);
+    let yMin = Infinity, yMax = -Infinity;
+    for (const s of samples) for (const t of traces) {
+      const v = s.values[t.key];
+      if (v == null || isNaN(v)) continue;
+      yMin = Math.min(yMin, v); yMax = Math.max(yMax, v);
+    }
+    if (!isFinite(yMin) || !isFinite(yMax)) { yMin = -1; yMax = 1; }
+    if (yMax - yMin < 1e-3) { yMin -= 0.5; yMax += 0.5; }
+    const pad = 0.10*(yMax - yMin);
+    yMin -= pad; yMax += pad;
+    if (yMin > 0 && yMin < 0.3*(yMax - yMin)) yMin = 0;
+    if (yMax < 0 && yMax > -0.3*(yMax - yMin)) yMax = 0;
+    const tMin = samples.length ? samples[0].t : 0;
+    const tMax = samples.length ? samples[samples.length - 1].t : 1;
+    const tRange = Math.max(tMax - tMin, 1e-9);
+    const xOf = (t) => ML + (t - tMin)/tRange * plotW;
+    const yOf = (v) => MT + (1 - (v - yMin)/(yMax - yMin)) * plotH;
+
+    // Plot frame
+    svg.appendChild(el('rect', {
+      x: ML, y: MT, width: plotW, height: plotH,
+      fill: 'white', stroke: '#e0e4ea', 'stroke-width': '1'
+    }));
+    // Zero gridline
+    if (yMin <= 0 && yMax >= 0) {
+      svg.appendChild(el('line', {
+        x1: ML, y1: yOf(0), x2: ML + plotW, y2: yOf(0),
+        stroke: '#ccc', 'stroke-width': '1', 'stroke-dasharray': '2,2'
+      }));
+    }
+    // Y-axis ticks (numeric)
+    const ticks = new Set([yMin, yMax]);
+    if (yMin <= 0 && yMax >= 0) ticks.add(0);
+    for (const v of ticks) {
+      svg.appendChild(el('text', {
+        x: ML - 6, y: yOf(v) + 4,
+        'font-size': '10', fill: '#666', 'text-anchor': 'end',
+        'font-family': 'monospace'
+      })).textContent = v.toFixed(2);
+    }
+    // Y-axis title (rotated, on the left)
+    if (yLabel) {
+      const yMid = MT + plotH/2;
+      const yt = el('text', {
+        x: 14, y: yMid,
+        'font-size': '11', fill: '#444', 'font-style': 'italic',
+        'text-anchor': 'middle',
+        transform: `rotate(-90, 14, ${yMid})`
+      });
+      yt.innerHTML = yLabel;
+      svg.appendChild(yt);
+    }
+    // X-axis ticks: numeric values at start and end of visible window
+    svg.appendChild(el('text', {
+      x: ML, y: MT + plotH + 12,
+      'font-size': '10', fill: '#666', 'text-anchor': 'middle',
+      'font-family': 'monospace'
+    })).textContent = tMin.toFixed(1);
+    svg.appendChild(el('text', {
+      x: ML + plotW, y: MT + plotH + 12,
+      'font-size': '10', fill: '#666', 'text-anchor': 'middle',
+      'font-family': 'monospace'
+    })).textContent = tMax.toFixed(1);
+    // X-axis title (centered below)
+    const xt = el('text', {
+      x: ML + plotW/2, y: H - 4,
+      'font-size': '11', fill: '#444', 'font-style': 'italic', 'text-anchor': 'middle'
+    });
+    xt.innerHTML = xLabel;
+    svg.appendChild(xt);
+
+    // Legend (above the plot)
+    let lx = ML + 5;
+    for (const t of traces) {
+      if (t.dash) {
+        svg.appendChild(el('line', {
+          x1: lx, y1: MT - 12, x2: lx + 12, y2: MT - 12,
+          stroke: t.color, 'stroke-width': '2', 'stroke-dasharray': t.dash
+        }));
+      } else {
+        svg.appendChild(el('rect', { x: lx, y: MT - 14, width: 12, height: 3, fill: t.color }));
+      }
+      const lbl = el('text', { x: lx + 16, y: MT - 10, 'font-size': '11', fill: '#444' });
+      lbl.innerHTML = t.label;
+      svg.appendChild(lbl);
+      lx += 130;
+    }
+
+    // Trace polylines
+    for (const t of traces) {
+      const points = samples
+        .filter(s => s.values[t.key] != null && !isNaN(s.values[t.key]))
+        .map(s => `${xOf(s.t)},${yOf(s.values[t.key])}`)
+        .join(' ');
+      if (points) {
+        const attrs = {
+          points, fill: 'none', stroke: t.color, 'stroke-width': '1.6'
+        };
+        if (t.dash) attrs['stroke-dasharray'] = t.dash;
+        svg.appendChild(el('polyline', attrs));
+      }
+    }
+  }
+  return { push, clear: clearAll, render, samples };
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,20 @@
+# LaTeX build artifacts
+*.aux
+*.fdb_latexmk
+*.fls
+*.log
+*.nav
+*.out
+*.snm
+*.toc
+*.synctex.gz
+*.bbl
+*.blg
+
+# Editor / OS junk
+.DS_Store
+Thumbs.db
+*~
+*.swp
+.vscode/
+.idea/
